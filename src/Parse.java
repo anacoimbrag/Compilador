@@ -376,7 +376,7 @@ public class Parse {
 			/* Acao Semantica */
 			if(s.getClasse() == ""){
 				//erro
-				System.err.println(lexico.linha + ":identificador ja declarado ["+s.getLexema()+"]");
+				System.err.println(lexico.linha + ":identificador nao declarado ["+s.getLexema()+"]");
 				System.exit(0);
 			}else if(s.getClass().equals("classe-const")){
 				//erro
@@ -475,6 +475,19 @@ public class Parse {
 		String exps_tipo = expS();
 		String Exp_tipo = exps_tipo;
 		//'>' '<' '>=' '<=' '=' '!='
+		Exp_end = Exps_end;
+		/**
+		 * 
+		 * Operacao op
+		 * 1 - >
+		 * 2 - <
+		 * 3 - >=
+		 * 4 - <=
+		 * 5 - ==
+		 * 6 - !=
+		 * 
+		 */
+		int op = 0;
 		if(s.getToken() == tabela.MORETHAN || s.getToken() == tabela.LESSTHAN || s.getToken() == tabela.MOREEQUAL || s.getToken() == tabela.LESSEQUAL || s.getToken() == tabela.EQUAL || s.getToken() == tabela.DIFFERENT){
 			/* Acao Semantica */
 			Exp_tipo = "tipo_logico";
@@ -485,6 +498,7 @@ public class Parse {
 				System.exit(0);
 			}else{
 				if(s.getToken() == tabela.EQUAL){
+					op = 5;
 					casaToken(tabela.EQUAL);
 				}
 				if(exps_tipo.equals("tipo_string")){
@@ -493,14 +507,19 @@ public class Parse {
 					System.exit(0);
 				}else{
 					if(s.getToken() == tabela.MORETHAN){
+						op = 1;
 						casaToken(tabela.MORETHAN);
 					}else if(s.getToken() == tabela.LESSTHAN){
+						op = 2;
 						casaToken(tabela.LESSTHAN);
 					}else if(s.getToken() == tabela.MOREEQUAL){
+						op = 3;
 						casaToken(tabela.MOREEQUAL);
 					}else if(s.getToken() == tabela.LESSEQUAL){
+						op = 5;
 						casaToken(tabela.LESSEQUAL);
 					}else if(s.getToken() == tabela.DIFFERENT){
+						op = 6;
 						casaToken(tabela.DIFFERENT);
 					}
 				}
@@ -512,6 +531,38 @@ public class Parse {
 				System.out.println(lexico.linha + ":tipos incompativeis.");
 				System.exit(0);
 			}
+			
+			codigo.write("mov ax, DS:[" + Exp_end + "]");
+			codigo.newLine();
+			codigo.write("cwd");
+			codigo.newLine();
+			codigo.write("mov cx, ax");
+			codigo.newLine();
+			codigo.write("mov ax DS:[" + Exps_end + "]");
+			codigo.newLine();
+			codigo.write("cwd");
+			codigo.newLine();
+			codigo.write("mov bx, ax");
+			codigo.newLine();
+			codigo.write("mov ax, cx");
+			codigo.newLine();
+			codigo.newLine();
+			
+			codigo.write("cmp ax, bx");
+			codigo.newLine();
+
+//			{ RotVerdadeiro:=NovoRot }
+//			{ gerar instrução Jxx RotVerdadeiro, onde Jxx será je
+//			(=), jne (<>), jl (<), jg (>), jge (>=), jle (<=) }
+//			{ mov AL, 0 }
+//			{ RotFim := NovoRot }
+//			{ jmp RotFim }
+//			{ RotVerdadeiro: }
+//			{ mov AL, 0FFh }
+//			{ RotFim: }
+//			{ Exp.end:=NovoTemp }
+//			{ Exp.tipo:=TIPOLÓGICO }
+//			{ mov Exp.end, AL }
 		}
 		
 		return Exp_tipo;
