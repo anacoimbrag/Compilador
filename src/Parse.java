@@ -207,7 +207,6 @@ public class Parse {
 					codigo.newLine();
 				}
 				
-					temp.setEndereco(endereco);
 					switch(temp.getTipo()){
 						case "tipo_byte":
 							endereco = memoria.alocarByte();
@@ -221,11 +220,11 @@ public class Parse {
 						case "tipo_string":
 							endereco = memoria.alocarString();
 							break;
-				}
+					}
+					temp.setEndereco(endereco);
 				
 				casaToken(tabela.CONST);
 			}else{
-				temp.setEndereco(endereco);
 				switch(temp.getTipo()){
 					case "tipo_byte":
 						endereco = memoria.alocarByte();
@@ -239,6 +238,7 @@ public class Parse {
 						break;
 					case "tipo_inteiro":
 						endereco = memoria.alocarInteiro();
+						System.out.println("contador: " + memoria.contador + "-endereco:" + endereco + "-lexema:" + temp.getLexema());
 						codigo.write("sword ? ;inteiro " + temp.getLexema());
 						codigo.newLine();
 						break;
@@ -248,6 +248,7 @@ public class Parse {
 						codigo.newLine();
 						break;
 				}
+				temp.setEndereco(endereco);
 			}
 			while(s.getToken() == tabela.COMMA){
 				casaToken(tabela.COMMA);
@@ -518,15 +519,38 @@ public class Parse {
 	
 	String expS() throws Exception{
 		String Exps_tipo = "";
+		boolean minus = false;
 		if(s.getToken() == tabela.MINUS || s.getToken() == tabela.PLUS){
 			if(s.getToken() == tabela.MINUS){
+				minus = true;
 				casaToken(tabela.MINUS);
 			}else if(s.getToken() == tabela.PLUS){
+				minus = false;
 				casaToken(tabela.PLUS);
+			}else{
+				minus = false;
 			}
 		}
 		/* Acao Semantica */
 		Exps_tipo = T();
+		if(minus){
+			Exps_end = memoria.novoTemp();
+			codigo.write("mov al, DS:[" + T_end + "] ;");
+			codigo.newLine();
+			codigo.write("not al");
+			codigo.newLine();
+			codigo.write("mov DS:[" + T_end + "], al");
+			codigo.newLine();
+		}
+		Exps_end = T_end;
+		
+		/**
+		 * Operador op
+		 * 1 - Minus
+		 * 2 - Plus
+		 * 3 - Or
+		 */
+		int op = 0;
 		while(s.getToken() == tabela.MINUS || s.getToken() == tabela.PLUS || s.getToken() == tabela.OR){
 			if(s.getToken() == tabela.MINUS){
 				if(Exps_tipo.equals("tipo_string")){
@@ -534,8 +558,10 @@ public class Parse {
 					System.out.println(lexico.linha + ":tipos incompativeis.");
 					System.exit(0);
 				}
+				op = 1;
 				casaToken(tabela.MINUS);
 			}else if(s.getToken() == tabela.PLUS){
+				op = 2;
 				casaToken(tabela.PLUS);
 			}else if(s.getToken() == tabela.OR){
 				if(Exps_tipo.equals("tipo_string")){
@@ -543,15 +569,42 @@ public class Parse {
 					System.out.println(lexico.linha + ":tipos incompativeis.");
 					System.exit(0);
 				}
+				op = 3;
 				casaToken(tabela.OR);
 			}
+			int Tend = T_end;
 			/* Acao Semantica */
 			String T1_tipo = T();
+			codigo.write("mov ax, DS:[" + Exps_end + "]");
+			codigo.newLine();
+			codigo.write("mov bx, DS:[" + T_end + "]");
+			codigo.newLine();
 			if(!Exps_tipo.equals(T1_tipo) && !(T1_tipo.equals("tipo_inteiro") && Exps_tipo.equals("tipo_byte") || Exps_tipo.equals("tipo_inteiro") && T1_tipo.equals("tipo_byte"))){
 				//erro
 				System.out.println(lexico.linha + ":tipos incompativeis.");
 				System.exit(0);
 			}
+			
+			switch(op){
+				case 1:
+					codigo.write("sub ax, bx ; minus");
+					codigo.newLine();
+					break;
+				case 2:
+					codigo.write("add ax, bx ; plus");
+					codigo.newLine();
+					break;
+				case 3:
+					codigo.write("or ax, bx ; and");
+					codigo.newLine();
+					break;
+			}
+			
+			Exps_end = memoria.novoTemp();
+			codigo.write("cwd ; converter pra inteiro");
+			codigo.newLine();
+			codigo.write("mov DS:[" + T_end + "], ax");
+			codigo.newLine();
 		}
 		
 		return Exps_tipo;
@@ -615,9 +668,9 @@ public class Parse {
 					codigo.newLine();
 					codigo.write("cwd ; conversao para inteiro");
 					codigo.newLine();
-					codigo.write("mov bx, DS:[al] ; voltar F1.end para bx");
+					codigo.write("mov bx, DS:[ax] ; voltar F1.end para bx");
 					codigo.newLine();
-					codigo.write("mov al, DS:[cx] voltar valor anterior de al");
+					codigo.write("mov ax, DS:[cx] voltar valor anterior de ax");
 					codigo.newLine();
 				}
 			}
@@ -632,7 +685,7 @@ public class Parse {
 					codigo.newLine();
 					break;
 				case 3:
-					codigo.write("or al, bx ; or");
+					codigo.write("and ax, bx ; and");
 					codigo.newLine();
 					break;
 			}
@@ -640,7 +693,7 @@ public class Parse {
 			T_end = memoria.novoTemp();
 			codigo.write("cwd ; converter pra inteiro");
 			codigo.newLine();
-			codigo.write("mov DS:[" + T_end + "], al");
+			codigo.write("mov DS:[" + T_end + "], ax");
 			codigo.newLine();
 			
 			/* Acao Semantica */
@@ -727,6 +780,7 @@ public class Parse {
 				F_tipo = s.getTipo();
 			}
 			F_end = s.getEndereco();
+			System.out.println(F_end + " - " + s.getLexema());
 			casaToken(tabela.ID);
 		}
 		

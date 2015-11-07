@@ -31,5 +31,10 @@ dseg ENDS
 
 mov al, 1 ; const 1
 mov DS:[2], al
+mov ax, DS:[16384]
+mov bx, DS:[2]
+add ax, bx ; plus
+cwd ; converter pra inteiro
+mov DS:[2], ax
 cseg ENDS ;fim seg. código
 END strt ;fim programa
