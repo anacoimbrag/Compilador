@@ -1,4 +1,7 @@
 *.class
+codigo.asm
+Gramatica.pdf
+Gramatica Linguagem L.docx
 
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
