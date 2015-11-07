@@ -473,52 +473,38 @@ public class Parse {
 		/* Acao Semantica */
 		String exps_tipo = expS();
 		String Exp_tipo = exps_tipo;
+		//'>' '<' '>=' '<=' '=' '!='
 		if(s.getToken() == tabela.MORETHAN || s.getToken() == tabela.LESSTHAN || s.getToken() == tabela.MOREEQUAL || s.getToken() == tabela.LESSEQUAL || s.getToken() == tabela.EQUAL || s.getToken() == tabela.DIFFERENT){
 			/* Acao Semantica */
 			Exp_tipo = "tipo_logico";
-			if(s.getToken() == tabela.MORETHAN){
-				if(!exps_tipo.equals("tipo_inteiro") && !exps_tipo.equals("tipo_byte")){
+
+			if(!exps_tipo.equals("tipo_inteiro") && !exps_tipo.equals("tipo_byte") && !exps_tipo.equals("tipo_string")){
+				//erro
+				System.out.println(lexico.linha + ":tipos incompativeis.");
+				System.exit(0);
+			}else{
+				if(s.getToken() == tabela.EQUAL){
+					casaToken(tabela.EQUAL);
+				}
+				if(exps_tipo.equals("tipo_string")){
 					//erro
 					System.out.println(lexico.linha + ":tipos incompativeis.");
 					System.exit(0);
+				}else{
+					if(s.getToken() == tabela.MORETHAN){
+						casaToken(tabela.MORETHAN);
+					}else if(s.getToken() == tabela.LESSTHAN){
+						casaToken(tabela.LESSTHAN);
+					}else if(s.getToken() == tabela.MOREEQUAL){
+						casaToken(tabela.MOREEQUAL);
+					}else if(s.getToken() == tabela.LESSEQUAL){
+						casaToken(tabela.LESSEQUAL);
+					}else if(s.getToken() == tabela.DIFFERENT){
+						casaToken(tabela.DIFFERENT);
+					}
 				}
-				casaToken(tabela.MORETHAN);
-			}else if(s.getToken() == tabela.LESSTHAN){
-				if(!exps_tipo.equals("tipo_inteiro") && !exps_tipo.equals("tipo_byte")){
-					//erro
-					System.out.println(lexico.linha + ":tipos incompativeis.");
-					System.exit(0);
-				}
-				casaToken(tabela.LESSTHAN);
-			}else if(s.getToken() == tabela.MOREEQUAL){
-				if(!exps_tipo.equals("tipo_inteiro") && !exps_tipo.equals("tipo_byte")){
-					//erro
-					System.out.println(lexico.linha + ":tipos incompativeis.");
-					System.exit(0);
-				}
-				casaToken(tabela.MOREEQUAL);
-			}else if(s.getToken() == tabela.LESSEQUAL){
-				if(!exps_tipo.equals("tipo_inteiro") && !exps_tipo.equals("tipo_byte")){
-					//erro
-					System.out.println(lexico.linha + ":tipos incompativeis.");
-					System.exit(0);
-				}
-				casaToken(tabela.LESSEQUAL);
-			}else if(s.getToken() == tabela.EQUAL){
-				if(!exps_tipo.equals("tipo_inteiro") && !exps_tipo.equals("tipo_byte") && !exps_tipo.equals("tipo_string")){
-					//erro
-					System.out.println(lexico.linha + ":tipos incompativeis.");
-					System.exit(0);
-				}
-				casaToken(tabela.EQUAL);
-			}else if(s.getToken() == tabela.DIFFERENT){
-				if(!exps_tipo.equals("tipo_inteiro") && !exps_tipo.equals("tipo_byte")){
-					//erro
-					System.out.println(lexico.linha + ":tipos incompativeis.");
-					System.exit(0);
-				}
-				casaToken(tabela.DIFFERENT);
 			}
+			
 			String exps1_tipo = expS();
 			if(!exps1_tipo.equals("tipo_inteiro") && !exps1_tipo.equals("tipo_byte")){
 				//erro
