@@ -376,11 +376,11 @@ public class Parse {
 			/* Acao Semantica */
 			if(s.getClasse() == ""){
 				//erro
-				System.out.println(lexico.linha + ":identificador ja declarado ["+s.getLexema()+"]");
+				System.err.println(lexico.linha + ":identificador ja declarado ["+s.getLexema()+"]");
 				System.exit(0);
 			}else if(s.getClass().equals("classe-const")){
 				//erro
-				System.out.println(lexico.linha + ":classe de identificador incompatível ["+s.getLexema()+"]");
+				System.err.println(lexico.linha + ":classe de identificador incompatível ["+s.getLexema()+"]");
 				System.exit(0);
 			}
 			tmp = s;
@@ -389,7 +389,7 @@ public class Parse {
 			Exp_tipo = exp();
 			if(!tmp.getTipo().equals(Exp_tipo) && !(tmp.getTipo().equals("tipo_inteiro") && Exp_tipo.equals("tipo_byte"))){
 				//erro
-				System.out.println(lexico.linha + ":tipos incompativeis.");
+				System.err.println(lexico.linha + ":tipos incompativeis.");
 				System.exit(0);
 			}
 			if((s.getTipo().equals("tipo_inteiro") && Exp_tipo.equals("tipo_byte")) || (Exp_tipo.equals("tipo_inteiro") && s.getTipo().equals("tipo_byte"))){
@@ -402,7 +402,7 @@ public class Parse {
 			Exp_tipo = exp();
 			if(!Exp_tipo.equals("tipo_logico")){
 				//erro
-				System.out.println(lexico.linha + ":tipos incompativeis.");
+				System.err.println(lexico.linha + ":tipos incompativeis.");
 				System.exit(0);
 			}
 			if(s.getToken() == tabela.ID || s.getToken() == tabela.WHILE || s.getToken() == tabela.IF || s.getToken() == tabela.READLN || s.getToken() == tabela.WRITE || s.getToken() == tabela.WRITELN){
@@ -416,7 +416,7 @@ public class Parse {
 			Exp_tipo = exp();
 			if(!Exp_tipo.equals("tipo_logico")){
 				//erro
-				System.out.println(lexico.linha + ":tipos incompativeis.");
+				System.err.println(lexico.linha + ":tipos incompativeis.");
 				System.exit(0);
 			}
 			if(s.getToken() == tabela.ID || s.getToken() == tabela.WHILE || s.getToken() == tabela.IF || s.getToken() == tabela.READLN || s.getToken() == tabela.WRITE || s.getToken() == tabela.WRITELN){
@@ -451,7 +451,7 @@ public class Parse {
 			Exp_tipo = exp();
 			if(!(Exp_tipo.equals("tipo_inteiro") || Exp_tipo.equals("tipo_string") || Exp_tipo.equals("tipo_byte"))){
 				//erro
-				System.out.println(lexico.linha + ":tipos incompativeis.");
+				System.err.println(lexico.linha + ":tipos incompativeis.");
 				System.exit(0);
 			}
 			while(s.getToken() == tabela.COMMA){
@@ -459,7 +459,7 @@ public class Parse {
 				Exp_tipo = exp();
 				if(!(Exp_tipo.equals("tipo_inteiro") || Exp_tipo.equals("tipo_string") || Exp_tipo.equals("tipo_byte"))){
 					//erro
-					System.out.println(lexico.linha + ":tipos incompativeis.");
+					System.err.println(lexico.linha + ":tipos incompativeis.");
 					System.exit(0);
 				}
 			}
