@@ -9,7 +9,7 @@ public class Memoria {
 	}
 	
 	public void alocarTemp(){
-		contador += 4000;
+		contador += 16384;
 	}
 	
 	public int alocarByte(){
@@ -32,7 +32,7 @@ public class Memoria {
 	
 	public int alocarString(){
 		int tmp = contador;
-		contador += 100;
+		contador += 256;
 		return tmp;
 	}
 	
@@ -60,7 +60,7 @@ public class Memoria {
 	
 	public int alocarTempString(){
 		int tmp = contTemp;
-		contTemp += 100;
+		contTemp += 256;
 		return tmp;
 	}
 }

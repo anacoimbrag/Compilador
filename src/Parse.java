@@ -80,6 +80,10 @@ public class Parse {
 	 		codigo.newLine();
 	 		codigo.write("strt:");
 	 		codigo.newLine();
+	 		codigo.write("mov ax, dseg");
+	 		codigo.newLine();
+	 		codigo.write("mov ds, ax");
+	 		codigo.newLine();
 			B();
 			codigo.write("cseg ENDS ;fim seg. código");
 			codigo.newLine();
@@ -124,7 +128,7 @@ public class Parse {
 			temp.setTipo(s.getTipo());
 			String lexTemp = s.getLexema();
 			if(s.getLexema().toLowerCase().equals("true")){
-				lexTemp = "FFh";
+				lexTemp = "ffh";
 			}else if(s.getLexema().toLowerCase().equals("false")){
 				lexTemp = "0h";
 			}
@@ -190,16 +194,16 @@ public class Parse {
 				}
 				String lexTemp = s.getLexema();
 				if(s.getLexema().toLowerCase().equals("true")){
-					lexTemp = "FFh";
+					lexTemp = "ffh";
 				}else if(s.getLexema().toLowerCase().equals("false")){
 					lexTemp = "0h";
 				}
 				if(minus){
-					codigo.write("byte -" + lexTemp + "; valor negativo " + temp.getLexema());
+					codigo.write("byte -" + lexTemp + " ; valor negativo " + temp.getLexema());
 					codigo.newLine();
 				}
 				else{
-					codigo.write("byte " + lexTemp + "; valor positivo " + temp.getLexema());
+					codigo.write("byte " + lexTemp + " ; valor positivo " + temp.getLexema());
 					codigo.newLine();
 				}
 				
@@ -225,12 +229,12 @@ public class Parse {
 				switch(temp.getTipo()){
 					case "tipo_byte":
 						endereco = memoria.alocarByte();
-						codigo.write("byte 1h ? ;byte " + temp.getLexema());
+						codigo.write("byte ? ;byte " + temp.getLexema());
 						codigo.newLine();
 						break;
 					case "tipo_logico":
 						endereco = memoria.alocarLogico();
-						codigo.write("byte 1h ? ;logico " + temp.getLexema());
+						codigo.write("byte ? ;logico " + temp.getLexema());
 						codigo.newLine();
 						break;
 					case "tipo_inteiro":
@@ -272,7 +276,7 @@ public class Parse {
 					
 					String lexTemp = s.getLexema();
 					if(s.getLexema().toLowerCase().equals("true")){
-						lexTemp = "FFh";
+						lexTemp = "ffh";
 					}else if(s.getLexema().toLowerCase().equals("false")){
 						lexTemp = "0h";
 					}
@@ -307,12 +311,12 @@ public class Parse {
 					switch(temp.getTipo()){
 						case "tipo_byte":
 							endereco = memoria.alocarByte();
-							codigo.write("byte 1h ? ;byte " + temp.getLexema());
+							codigo.write("byte ? ;byte " + temp.getLexema());
 							codigo.newLine();
 							break;
 						case "tipo_logico":
 							endereco = memoria.alocarLogico();
-							codigo.write("byte 1h ? ;logico " + temp.getLexema());
+							codigo.write("byte ? ;logico " + temp.getLexema());
 							codigo.newLine();
 							break;
 						case "tipo_inteiro":
@@ -608,7 +612,7 @@ public class Parse {
 			}
 			String F1_tipo = F();
 			
-			codigo.write("mov ax, DS:[" + T_end + "]");
+			codigo.write("mov al, DS:[" + T_end + "]");
 			codigo.newLine();
 			codigo.write("mov bx, DS:[" + F_end + "]");
 			codigo.newLine();
@@ -619,15 +623,15 @@ public class Parse {
 					codigo.newLine();
 				}
 				if(!F1_tipo.equals("tipo_inteiro")){
-					codigo.write("mov cx, DS:[ax] ; salvar o que tinha em ax");
+					codigo.write("mov cx, DS:[al] ; salvar o que tinha em al");
 					codigo.newLine();
-					codigo.write("mov ax, DS:[" + F_end + "] ; mover F1.end para ax");
+					codigo.write("mov al, DS:[" + F_end + "] ; mover F1.end para al");
 					codigo.newLine();
 					codigo.write("cwd ; conversao para inteiro");
 					codigo.newLine();
-					codigo.write("mov bx, DS:[ax] ; voltar F1.end para bx");
+					codigo.write("mov bx, DS:[al] ; voltar F1.end para bx");
 					codigo.newLine();
-					codigo.write("mov ax, DS:[cx] voltar valor anterior de ax");
+					codigo.write("mov al, DS:[cx] voltar valor anterior de al");
 					codigo.newLine();
 				}
 			}
@@ -642,13 +646,15 @@ public class Parse {
 					codigo.newLine();
 					break;
 				case 3:
-					codigo.write("or ax, bx ; or");
+					codigo.write("or al, bx ; or");
 					codigo.newLine();
 					break;
 			}
 			
 			T_end = memoria.novoTemp();
-			codigo.write("mov DS:[" + T_end + "], ax");
+			codigo.write("cwd ; converter pra inteiro");
+			codigo.newLine();
+			codigo.write("mov DS:[" + T_end + "], al");
 			codigo.newLine();
 			
 			/* Acao Semantica */
@@ -674,13 +680,10 @@ public class Parse {
 			F_end = Exp_end;
 			casaToken(tabela.CLPAR);
 		}else if(s.getToken() == tabela.NOT){
-			if(F_tipo.equals("tipo_string")){
+			if(F_tipo.equals("tipo_string") || F_tipo.equals("tipo_logico")){
 				//erro
 				System.out.println(lexico.linha + ":tipos incompativeis.");
 				System.exit(0);
-			}
-			if(!F_tipo.equals("tipo_inteiro")){
-				//converter para inteiro
 			}
 			casaToken(tabela.NOT);
 			/* Acao Semantica */
@@ -688,10 +691,10 @@ public class Parse {
 			int Fend = F_end;
 			F();
 			Fend = memoria.novoTemp();
-			codigo.write("mov ax, DS:[" + F_end + "] ;");
+			codigo.write("mov al, DS:[" + F_end + "] ;");
 			codigo.newLine();
-			codigo.write("not ax");
-			codigo.write("mov DS:[" + Fend + "], ax");
+			codigo.write("not al");
+			codigo.write("mov DS:[" + Fend + "], al");
 			F_end = Fend;
 		}else if(s.getToken() == tabela.CONST){
 			/* Acao Semantica */
@@ -711,14 +714,15 @@ public class Parse {
 			}else{
 				String lexTemp = s.getLexema();
 				if(s.getLexema().toLowerCase().equals("true"))
-					lexTemp = "FFh";
+					lexTemp = "ffh";
 				else if(s.getLexema().toLowerCase().equals("false"))
 					lexTemp = "0h";
 				F_end = memoria.novoTemp();
-				codigo.write("mov ax, " + lexTemp + " ; const " + s.getLexema());
+				codigo.write("mov al, " + lexTemp + " ; const " + s.getLexema());
 				codigo.newLine();
-				codigo.write("mov DS:[" + F_end + "], ax");
+				codigo.write("mov DS:[" + F_end + "], al");
 				codigo.newLine();
+				System.out.println("Antes: " + memoria.contTemp);
 				if(s.getTipo().equals("tipo_byte")){
 					memoria.alocarTempByte();
 				}else if(s.getTipo().equals("tipo_logico")){
@@ -726,6 +730,7 @@ public class Parse {
 				}else if(s.getTipo().equals("tipo_inteiro")){
 					memoria.alocarTempInteiro();
 				}
+				System.out.println("Depois : " + memoria.contTemp);
 			}
 			casaToken(tabela.CONST);
 		}else if(s.getToken() == tabela.ID){
@@ -736,8 +741,8 @@ public class Parse {
 				System.exit(0);
 			}else{
 				F_tipo = s.getTipo();
-				F_end = s.getEndereco();
 			}
+			F_end = s.getEndereco();
 			casaToken(tabela.ID);
 		}
 		
