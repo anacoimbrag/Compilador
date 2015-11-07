@@ -9,6 +9,7 @@ public class Parse {
 	BufferedReader arquivo;
 	BufferedWriter codigo;
 	Memoria memoria;
+	Rotulo rotulo;
 	int endereco = memoria.contador;
 	
 	int F_end = 0;
@@ -23,6 +24,7 @@ public class Parse {
 			tabela = new TabelaSimbolos();
 			s = lexico.analisar(lexico.dev, arquivo);
 			memoria = new Memoria();
+			rotulo = new Rotulo();
 			codigo = new BufferedWriter(new FileWriter("codigo.asm"));
 			if(s == null){ // comentario
 				s = lexico.analisar(lexico.dev, arquivo);
@@ -85,6 +87,10 @@ public class Parse {
 	 		codigo.write("mov ds, ax");
 	 		codigo.newLine();
 			B();
+			codigo.write("mov ah,4Ch");
+			codigo.newLine();
+			codigo.write("int 21h");
+			codigo.newLine();
 			codigo.write("cseg ENDS ;fim seg. código");
 			codigo.newLine();
 			codigo.write("END strt ;fim programa");
@@ -128,7 +134,7 @@ public class Parse {
 			temp.setTipo(s.getTipo());
 			String lexTemp = s.getLexema();
 			if(s.getLexema().toLowerCase().equals("true")){
-				lexTemp = "ffh";
+				lexTemp = "0FFh";
 			}else if(s.getLexema().toLowerCase().equals("false")){
 				lexTemp = "0h";
 			}
@@ -194,7 +200,7 @@ public class Parse {
 				}
 				String lexTemp = s.getLexema();
 				if(s.getLexema().toLowerCase().equals("true")){
-					lexTemp = "ffh";
+					lexTemp = "0FFh";
 				}else if(s.getLexema().toLowerCase().equals("false")){
 					lexTemp = "0h";
 				}
@@ -277,7 +283,7 @@ public class Parse {
 					
 					String lexTemp = s.getLexema();
 					if(s.getLexema().toLowerCase().equals("true")){
-						lexTemp = "ffh";
+						lexTemp = "0FFh";
 					}else if(s.getLexema().toLowerCase().equals("false")){
 						lexTemp = "0h";
 					}
@@ -372,13 +378,14 @@ public class Parse {
 		String C_tipo = "";
 		String Exp_tipo = "";
 		Simbolo tmp;
+		boolean conv = false;
 		if(s.getToken() == tabela.ID){
 			/* Acao Semantica */
 			if(s.getClasse() == ""){
 				//erro
 				System.err.println(lexico.linha + ":identificador nao declarado ["+s.getLexema()+"]");
 				System.exit(0);
-			}else if(s.getClass().equals("classe-const")){
+			}else if(s.getClasse().equals("classe-const")){
 				//erro
 				System.err.println(lexico.linha + ":classe de identificador incompatível ["+s.getLexema()+"]");
 				System.exit(0);
@@ -394,22 +401,52 @@ public class Parse {
 			}
 			if((s.getTipo().equals("tipo_inteiro") && Exp_tipo.equals("tipo_byte")) || (Exp_tipo.equals("tipo_inteiro") && s.getTipo().equals("tipo_byte"))){
 				C_tipo = "tipo_inteiro";
+				conv = true;
+			}else{
+				conv = false;
 			}
+			codigo.write("mov al, DS:[" + Exp_end + "]");
+			codigo.newLine();
+			if(Exp_tipo.equals("tipo_byte")){
+				codigo.write("mov ah, 0");
+				codigo.newLine();
+			}
+			codigo.write("mov DS:[" + tmp.getEnd() + "], ax");
+			codigo.newLine();
 			casaToken(tabela.DOTCOMMA);
 		}else if(s.getToken() == tabela.WHILE){
 			casaToken(tabela.WHILE);
+			String RotuloInicio = rotulo.novoRotulo();
+			String RotuloFim = rotulo.novoRotulo();
+			
+			codigo.write(RotuloInicio + ":");
+			codigo.newLine();
+			
 			/* Acao Semantica */
 			Exp_tipo = exp();
+			
 			if(!Exp_tipo.equals("tipo_logico")){
 				//erro
 				System.err.println(lexico.linha + ":tipos incompativeis.");
 				System.exit(0);
 			}
+			
+			codigo.write("mov ax, DS:[" + Exp_end + "]");
+			codigo.newLine();
+			
+			codigo.write("cmp ax, 0");
+			codigo.newLine();
+			codigo.write("je " + RotuloFim);
+			codigo.newLine();
+			
 			if(s.getToken() == tabela.ID || s.getToken() == tabela.WHILE || s.getToken() == tabela.IF || s.getToken() == tabela.READLN || s.getToken() == tabela.WRITE || s.getToken() == tabela.WRITELN){
 				C();
 			}else if(s.getToken() == tabela.BEGIN){
 				B();
 			}
+			
+			codigo.write("jmp " + RotuloInicio);
+			codigo.write(RotuloFim + ":");
 		}else if(s.getToken() == tabela.IF){
 			casaToken(tabela.IF);
 			/* Acao Semantica */
@@ -489,8 +526,6 @@ public class Parse {
 		 */
 		int op = 0;
 		if(s.getToken() == tabela.MORETHAN || s.getToken() == tabela.LESSTHAN || s.getToken() == tabela.MOREEQUAL || s.getToken() == tabela.LESSEQUAL || s.getToken() == tabela.EQUAL || s.getToken() == tabela.DIFFERENT){
-			/* Acao Semantica */
-			Exp_tipo = "tipo_logico";
 
 			if(!exps_tipo.equals("tipo_inteiro") && !exps_tipo.equals("tipo_byte") && !exps_tipo.equals("tipo_string")){
 				//erro
@@ -538,7 +573,7 @@ public class Parse {
 			codigo.newLine();
 			codigo.write("mov cx, ax");
 			codigo.newLine();
-			codigo.write("mov ax DS:[" + Exps_end + "]");
+			codigo.write("mov ax, DS:[" + Exps_end + "]");
 			codigo.newLine();
 			codigo.write("cwd");
 			codigo.newLine();
@@ -551,18 +586,54 @@ public class Parse {
 			codigo.write("cmp ax, bx");
 			codigo.newLine();
 
-//			{ RotVerdadeiro:=NovoRot }
-//			{ gerar instrução Jxx RotVerdadeiro, onde Jxx será je
-//			(=), jne (<>), jl (<), jg (>), jge (>=), jle (<=) }
-//			{ mov AL, 0 }
-//			{ RotFim := NovoRot }
-//			{ jmp RotFim }
-//			{ RotVerdadeiro: }
-//			{ mov AL, 0FFh }
-//			{ RotFim: }
-//			{ Exp.end:=NovoTemp }
-//			{ Exp.tipo:=TIPOLÓGICO }
-//			{ mov Exp.end, AL }
+			String RotuloVerdadeiro = rotulo.novoRotulo();
+
+			switch(op){
+				case 1:
+					codigo.write("jg " + RotuloVerdadeiro);
+					codigo.newLine();
+					break;
+				case 2:
+					codigo.write("jl " + RotuloVerdadeiro);
+					codigo.newLine();
+					break;
+				case 3:
+					codigo.write("jge " + RotuloVerdadeiro);
+					codigo.newLine();
+					break;
+				case 4:
+					codigo.write("jle " + RotuloVerdadeiro);
+					codigo.newLine();
+					break;
+				case 5:
+					codigo.write("je " + RotuloVerdadeiro);
+					codigo.newLine();
+					break;
+				case 6:
+					codigo.write("jne " + RotuloVerdadeiro);
+					codigo.newLine();
+					break;
+			}
+			
+			codigo.write("mov AL, 0");
+			codigo.newLine();
+			
+			String RotuloFalso = rotulo.novoRotulo();
+			codigo.write("jmp " + RotuloFalso);
+			codigo.newLine();
+			
+			codigo.write(RotuloVerdadeiro + ":");
+			codigo.newLine();
+			codigo.write("mov AL, 0FFh");
+			codigo.newLine();
+			
+			codigo.write(RotuloFalso + ":");
+			codigo.newLine();
+			Exp_end = memoria.novoTemp();
+			/* Acao Semantica */
+			Exp_tipo = "tipo_logico";
+			codigo.write("mov DS:[" + Exp_end + "], AL");
+			codigo.newLine();
 		}
 		
 		return Exp_tipo;
@@ -804,7 +875,7 @@ public class Parse {
 			}else{
 				String lexTemp = s.getLexema();
 				if(s.getLexema().toLowerCase().equals("true"))
-					lexTemp = "ffh";
+					lexTemp = "0FFh";
 				else if(s.getLexema().toLowerCase().equals("false"))
 					lexTemp = "0h";
 				F_end = memoria.novoTemp();

@@ -20,10 +20,19 @@ dseg SEGMENT PUBLIC
 byte "digite seu nome$"
 dseg ENDS
 
-mov al, ffh ; const true
+mov al, 0FFh ; const true
 mov DS:[0], al
+mov al, DS:[0]
+mov DS:[16642], ax
 mov al, 0 ; const 0
 mov DS:[1], al
+mov al, DS:[1]
+mov ah, 0
+mov DS:[16384], ax
+R0:
+mov ax, DS:[16642]
+cmp ax, 0
+je R1
 
 dseg SEGMENT PUBLIC
 byte "ola'$"
@@ -36,5 +45,27 @@ mov bx, DS:[2]
 add ax, bx ; plus
 cwd ; converter pra inteiro
 mov DS:[2], ax
+mov al, DS:[3]
+mov DS:[16384], ax
+mov ax, DS:[16384]
+cwd
+mov cx, ax
+mov ax, DS:[16642]
+cwd
+mov bx, ax
+mov ax, cx
+
+cmp ax, bx
+jl R2
+mov AL, 0
+jmp R3
+R2:
+mov AL, 0FFh
+R3:
+mov DS:[3], AL
+mov al, DS:[3]
+mov DS:[16642], ax
+jmp R0R1:mov ah,4Ch
+int 21h
 cseg ENDS ;fim seg. código
 END strt ;fim programa
