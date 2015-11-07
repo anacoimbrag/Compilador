@@ -238,7 +238,7 @@ public class Parse {
 						break;
 					case "tipo_inteiro":
 						endereco = memoria.alocarInteiro();
-						System.out.println("contador: " + memoria.contador + "-endereco:" + endereco + "-lexema:" + temp.getLexema());
+						//System.out.println("contador: " + memoria.contador + "-endereco:" + endereco + "-lexema:" + temp.getLexema());
 						codigo.write("sword ? ;inteiro " + temp.getLexema());
 						codigo.newLine();
 						break;
@@ -269,9 +269,9 @@ public class Parse {
 						casaToken(tabela.MINUS);
 					}
 					/* Acao Semantica */
-					if(!temp.getTipo().equals(s.getTipo()) || !(temp.getTipo().equals("tipo_inteiro") && s.getTipo().equals("tipo_byte"))){
+					if(!temp.getTipo().equals(s.getTipo()) && !(temp.getTipo().equals("tipo_inteiro") && s.getTipo().equals("tipo_byte"))){
 						//erro
-						System.out.println(lexico.linha+"tipos incompativeis.");
+						System.out.println(lexico.linha+":tipos incompativeis.");
 						System.exit(0);
 					}
 					
@@ -376,9 +376,11 @@ public class Parse {
 			/* Acao Semantica */
 			if(s.getClasse() == ""){
 				//erro
-				System.err.println(lexico.linha + ":identificador ja declarado ["+s.getLexema()+"]");
+				System.err.println(lexico.linha + ":identificador nao declarado ["+s.getLexema()+"]");
 				System.exit(0);
-			}else if(s.getClass().equals("classe-const")){
+			}
+			//System.out.println(lexico.linha+s.getClasse());
+			if(s.getClasse().equals("classe_const")){
 				//erro
 				System.err.println(lexico.linha + ":classe de identificador incompatível ["+s.getLexema()+"]");
 				System.exit(0);
@@ -697,7 +699,8 @@ public class Parse {
 			codigo.newLine();
 			
 			/* Acao Semantica */
-			if(!T_tipo.equals(F1_tipo) || !(T_tipo.equals("tipo_inteiro") && F1_tipo.equals("tipo_byte") || F1_tipo.equals("tipo_inteiro") && T_tipo.equals("tipo_byte"))){
+			//se T_tipo != F1_tipo e ((T_tipo=int & F1_tipo=byte)||!(F1_tipo=int & T_tipo=byte))
+			if(!T_tipo.equals(F1_tipo) && !((T_tipo.equals("tipo_inteiro") && F1_tipo.equals("tipo_byte")) || (F1_tipo.equals("tipo_inteiro") && T_tipo.equals("tipo_byte")))){
 				//erro
 				System.err.println(lexico.linha + ":tipos incompativeis.");
 				System.exit(0);
@@ -774,13 +777,13 @@ public class Parse {
 			/* Acao Semantica */
 			if(s.getClass().equals("")){
 				//erro
-				System.err.println(lexico.linha + ":identificador ja declarado[" + s.getLexema() + "]");
+				System.err.println(lexico.linha + ":identificador ja declarado [" + s.getLexema() + "]");
 				System.exit(0);
 			}else{
 				F_tipo = s.getTipo();
 			}
 			F_end = s.getEndereco();
-			System.out.println(F_end + " - " + s.getLexema());
+			//System.out.println(F_end + " - " + s.getLexema());
 			casaToken(tabela.ID);
 		}
 		

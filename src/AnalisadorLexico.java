@@ -276,6 +276,7 @@ public class AnalisadorLexico {
 				break;
 			case 17:
 				c = (char)arquivo.read();
+				//System.out.println(linha+"teste: "+(int)c);
 				if(c == '"'){
 					lexema += c;
 					satual = sfinal;
@@ -284,7 +285,7 @@ public class AnalisadorLexico {
 					EOF = true;
 					System.err.println(linha + ":Fim de arquivo não esperado");
 					System.exit(0);
-				}else if(c == 11 && c == 8 && !digito(c) && !letra(c) && c != '+' && c != '-' && c != '*' && c != '(' && c != ')' && c != ';' && c != ',' && c != '/' && c != '>' && c != '<' && c != '=' && c != '"'){
+				}else if(c == 13 || c == 10 || c == 11 || c == 8 && !digito(c) && !letra(c) && c != '+' && c != '-' && c != '*' && c != '(' && c != ')' && c != ';' && c != ',' && c != '/' && c != '>' && c != '<' && c != '=' && c != '"'){
 					System.err.println(linha + ":Caracter inválido.");
 					System.exit(0);
 				}else{
@@ -322,7 +323,7 @@ public class AnalisadorLexico {
 									//hexadecimal tem que ser tamanho 4
 									if(lexema.length() == 4){
 										for(int i = 2; i < lexema.length(); i++){
-											if((!digito(lexema.charAt(i)) && !letra(lexema.charAt(i))) || (lexema.charAt(i)<'A' || lexema.charAt(i)>'F')){
+											if((lexema.charAt(i)<'A' || lexema.charAt(i)>'F') && !(digito(lexema.charAt(i)))){
 												System.err.println(linha + ":Lexema não esperado: " + lexema);
 												System.exit(0);
 											}
