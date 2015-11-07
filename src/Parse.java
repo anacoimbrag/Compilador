@@ -660,7 +660,7 @@ public class Parse {
 			/* Acao Semantica */
 			if(!T_tipo.equals(F1_tipo) || !(T_tipo.equals("tipo_inteiro") && F1_tipo.equals("tipo_byte") || F1_tipo.equals("tipo_inteiro") && T_tipo.equals("tipo_byte"))){
 				//erro
-				System.out.println(lexico.linha + ":tipos incompativeis.");
+				System.err.println(lexico.linha + ":tipos incompativeis.");
 				System.exit(0);
 			}
 			
@@ -682,7 +682,7 @@ public class Parse {
 		}else if(s.getToken() == tabela.NOT){
 			if(F_tipo.equals("tipo_string") || F_tipo.equals("tipo_logico")){
 				//erro
-				System.out.println(lexico.linha + ":tipos incompativeis.");
+				System.err.println(lexico.linha + ":tipos incompativeis.");
 				System.exit(0);
 			}
 			casaToken(tabela.NOT);
@@ -722,7 +722,6 @@ public class Parse {
 				codigo.newLine();
 				codigo.write("mov DS:[" + F_end + "], al");
 				codigo.newLine();
-				System.out.println("Antes: " + memoria.contTemp);
 				if(s.getTipo().equals("tipo_byte")){
 					memoria.alocarTempByte();
 				}else if(s.getTipo().equals("tipo_logico")){
@@ -730,14 +729,13 @@ public class Parse {
 				}else if(s.getTipo().equals("tipo_inteiro")){
 					memoria.alocarTempInteiro();
 				}
-				System.out.println("Depois : " + memoria.contTemp);
 			}
 			casaToken(tabela.CONST);
 		}else if(s.getToken() == tabela.ID){
 			/* Acao Semantica */
 			if(s.getClass().equals("")){
 				//erro
-				System.out.println(lexico.linha + ":identificador ja declarado[" + s.getLexema() + "]");
+				System.err.println(lexico.linha + ":identificador ja declarado[" + s.getLexema() + "]");
 				System.exit(0);
 			}else{
 				F_tipo = s.getTipo();
