@@ -72,8 +72,6 @@ public class TabelaSimbolos {
 		tabela.put("readln", new Simbolo(READLN,"readln", ++end));
 		tabela.put("write", new Simbolo(WRITE,"write", ++end));
 		tabela.put("writeln", new Simbolo(WRITELN,"writeln", ++end));
-		tabela.put("true", new Simbolo(TRUE,"true", ++end));
-		tabela.put("false", new Simbolo(FALSE,"false", ++end));
 		tabela.put("boolean", new Simbolo(BOOLEAN,"boolean", ++end));
 		
 	}
@@ -82,6 +80,11 @@ public class TabelaSimbolos {
 		lexema = lexema.toLowerCase();
 		Simbolo aux = tabela.get(lexema);
 		return aux.getEnd();
+	}
+	
+	public Simbolo buscaSimbolo(String lexema){
+		lexema = lexema.toLowerCase();
+		return tabela.get(lexema);
 	}
 	
 	public Simbolo inserirID(String lexema){

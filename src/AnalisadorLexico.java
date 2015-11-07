@@ -7,17 +7,15 @@ public class AnalisadorLexico {
 	Simbolo s;
 	boolean id = false, constante = false;
 	char c;
-	public static int linha = 0;
+	public static int linha = 1;
+	public boolean comentario = false;
+	public boolean EOF = false;
 	
 	Simbolo analisar(boolean devolucao, BufferedReader arquivo) throws Exception{
 		int satual = 0;
 		int sfinal = 14;
 		lexema = "";
 				
-		if(c == -1){
-			//erro
-		}
-		
 		while(satual != sfinal){
 			switch(satual){
 			case 0:
@@ -26,12 +24,15 @@ public class AnalisadorLexico {
 				}
 				devolucao = false;
 				
-				if(c == '+' || c == '-' || c == '*' || c == '(' || c == ')' || c == ';' || c == ','){
+				if(c == '\n' || c == 11){
+					linha++;
+				}
+				else if(c == '+' || c == '-' || c == '*' || c == '(' || c == ')' || c == ';' || c == ','){
 					lexema += c;
 					satual = sfinal;
 					dev = false;
 				}
-				if(c == 32 || c == 11 || c == 8){
+				else if(c == 32 || c == 11 || c == 8 || c == 13 || c == 9){
 					satual = 0;
 				}
 				else if(c == '/'){
@@ -63,11 +64,22 @@ public class AnalisadorLexico {
 					lexema += c;
 					satual = 17;
 				}
+				else if(c == 65535){
+                    satual = sfinal;
+                    lexema += c;
+                    EOF = true;
+                    dev = false;
+                    arquivo.close();
+                }else{
+                	System.err.println(linha + ":Caractere inválido");
+					System.exit(0);
+                }
 				break;
 			case 1:
 				c = (char)arquivo.read();
 				if(c == '*'){
 					lexema += c;
+					comentario = true;
 					satual = 2;
 				}else{
 					satual = sfinal;
@@ -79,6 +91,13 @@ public class AnalisadorLexico {
 				c = (char)arquivo.read();
 				if(c == '*'){
 					satual = 3;
+				}else if(c == 13){
+					satual = 2;
+					linha ++;
+				}else if(c == -1 || c == 65535){
+					EOF = true;
+					System.err.println(linha + ":Fim de arquivo não esperado");
+					System.exit(0);
 				}else{
 					satual = 2;
 				}
@@ -88,8 +107,13 @@ public class AnalisadorLexico {
 				if(c == '/'){
 					satual = 0;
 					lexema = "";
+					comentario = false;
 				}else if(c == '*'){
 					satual = 3;
+				}else if(c == -1 || c == 65535){
+					EOF = true;
+					System.err.println(linha + ":Fim de arquivo não esperado");
+					System.exit(0);
 				}else{
 					satual = 2;
 				}
@@ -113,7 +137,8 @@ public class AnalisadorLexico {
 					satual = sfinal;
 					dev = false;
 				}else {
-					//erro
+					System.err.println(linha + ":Caracter inválido.");
+					System.exit(0);
 				}
 				break;
 			case 6:
@@ -135,6 +160,10 @@ public class AnalisadorLexico {
 				}else if(digito(c)){
 					lexema += c;
 					satual = 9;
+				}else if(c == 'h'){
+					lexema += c;
+					satual = sfinal;
+					dev = false;
 				}
 				else{
 					satual = sfinal;
@@ -187,6 +216,7 @@ public class AnalisadorLexico {
 					if(letra(c)){
 						lexema += c;
 						satual = sfinal;
+						dev = false;
 					}else{
 						satual = sfinal;
 						devolucao = true;
@@ -203,6 +233,7 @@ public class AnalisadorLexico {
 					if(letra(c)){
 						lexema += c;
 						satual = sfinal;
+						dev = false;
 					}else{
 						satual = sfinal;
 						devolucao = true;
@@ -217,7 +248,8 @@ public class AnalisadorLexico {
 					devolucao = true;
 					dev = true;
 				}else{
-					//erro
+					System.err.println(linha + ":Caracter inválido.");
+					System.exit(0);
 				}
 				break;
 			case 15:
@@ -242,79 +274,113 @@ public class AnalisadorLexico {
 					dev = true;
 				}
 				break;
-				
 			case 17:
 				c = (char)arquivo.read();
 				if(c == '"'){
 					lexema += c;
 					satual = sfinal;
 					dev = false;
-				}else if(c == 11 || c == 8){
-					//erro
+				}else if(c == -1 || c == 65535){
+					EOF = true;
+					System.err.println(linha + ":Fim de arquivo não esperado");
+					System.exit(0);
+				}else if(c == 11 && c == 8 && !digito(c) && !letra(c) && c != '+' && c != '-' && c != '*' && c != '(' && c != ')' && c != ';' && c != ',' && c != '/' && c != '>' && c != '<' && c != '=' && c != '"'){
+					System.err.println(linha + ":Caracter inválido.");
+					System.exit(0);
 				}else{
 					lexema += c;
 					satual = 17;
 				}
+				break;
 			}
 			
 		}
 		
-		if(simbolos.tabela.get(lexema) != null){
-			s = simbolos.tabela.get(lexema);
-		}
-		else{
-			if(letra(lexema.charAt(0)) || lexema.charAt(0) == '_'){
-				s = simbolos.inserirID(lexema);
+		if(!EOF){
+			if(simbolos.tabela.get(lexema.toLowerCase()) != null){
+				s = simbolos.tabela.get(lexema.toLowerCase());
 			}
-			else if(digito(lexema.charAt(0)) || lexema.charAt(0) == '"' || lexema.charAt(0) == 'F'){
-				if(digito(lexema.charAt(0))){
-					if(lexema.charAt(0) == '0'){
-						if(lexema.length() > 1){
-							if(lexema.charAt(1) == 'h'){
-								s = simbolos.inserirConst(lexema, "boolean");
-							}
-							else if(lexema.charAt(1) == 'x'){
-								if(lexema.length() >= 3 && lexema.length() <= 4){
-									for(int i = 2; i < lexema.length(); i++){
-										if(!digito(lexema.charAt(i)) || !letra(lexema.charAt(i))){
-											//erro
+			else{
+				if(lexema.toLowerCase().equals("true") || lexema.toLowerCase().equals("false") ){
+					s = simbolos.inserirConst(lexema, "tipo_logico");
+				}else if(lexema == "FFh"){
+					s = simbolos.inserirConst(lexema, "tipo_logico");
+				}else if(letra(lexema.charAt(0)) || lexema.charAt(0) == '_'){
+					s = simbolos.inserirID(lexema);
+				}
+				else if(digito(lexema.charAt(0)) || lexema.charAt(0) == '"'){
+					if(digito(lexema.charAt(0))){
+						if(lexema.charAt(0) == '0'){
+							//começa com 0 e tamanho maior que um, pode ser INTEIRO, BYTE ou LOGICO
+							if(lexema.length() > 1){
+								//0h é tipo LOGICO
+								if(lexema.charAt(1) == 'h'){
+									s = simbolos.inserirConst(lexema, "tipo_logico");
+								}
+								//0x garante ser hexadecimal
+								else if(lexema.charAt(1) == 'x'){
+									//hexadecimal tem que ser tamanho 4
+									if(lexema.length() == 4){
+										for(int i = 2; i < lexema.length(); i++){
+											if((!digito(lexema.charAt(i)) && !letra(lexema.charAt(i))) || (lexema.charAt(i)<'A' || lexema.charAt(i)>'F')){
+												System.err.println(linha + ":Lexema não esperado: " + lexema);
+												System.exit(0);
+											}
+										}
+										s = simbolos.inserirConst(lexema, "tipo_byte");
+									//0x tamanho menor que 4 ERRO
+									}else if(lexema.length() < 4){
+										System.err.println(linha + ":Lexema não esperado: " + lexema);
+										System.exit(0);
+									}
+																	
+								}else if(lexema.length() <= 5){
+									for(char l : lexema.toCharArray()){
+										if(!digito(l)){
+											System.err.println(linha + ":Lexema não esperado: " + lexema);
+											System.exit(0);
 										}
 									}
-									s = simbolos.inserirConst(lexema, "byte");
+									s = simbolos.inserirConst(lexema, "tipo_inteiro");
 								}
-							}else if(lexema.length() <= 5){
-								for(char l : lexema.toCharArray()){
-									if(!digito(l)){
-										//erro
-									}
-								}
-								s = simbolos.inserirConst(lexema, "int");
+							//começa com 0 e tem um digito só
+							}else if(lexema.length() == 1){
+								s = simbolos.inserirConst(lexema, "tipo_byte");
 							}
 						}else{
-							s = simbolos.inserirConst(lexema, "int");
-						}
-					}else{
-						if(lexema.length() <= 5){
-							for(char l : lexema.toCharArray()){
-								if(!digito(l)){
-									//erro
+							if(lexema.length() <= 5){
+								//começa com numero e tem algo diferente de digito - ERRO
+								for(char l : lexema.toCharArray()){
+									if(!digito(l)){
+										System.err.println(linha + ":Caracter inválido.");
+										System.exit(0);
+									}
 								}
+								int lex = 0;
+								lex = Integer.parseInt(lexema);
+								//se for entre 0 e 255 = byte
+								if(lex >= 0 && lex <= 255){
+									s = simbolos.inserirConst(lexema, "tipo_byte");
+								}else{
+									s = simbolos.inserirConst(lexema, "tipo_inteiro");
+								}
+							//mais de 5 digitos = ERRO
+							}else{
+								System.err.println(linha + ":Lexema não identificado: " + lexema);
+								System.exit(0);
 							}
-							s = simbolos.inserirConst(lexema, "int");
 						}
+					}else if(lexema.charAt(0) == '"' && lexema.charAt(lexema.length() - 1) == '"'){
+						s = simbolos.inserirConst(lexema, "tipo_string");
+					}else{
+						System.err.println(linha + "::Lexema não identificado: " + lexema);
+						System.exit(0);
 					}
-				}else if(lexema.charAt(0) == '"' && lexema.charAt(lexema.length() - 1) == '"'){
-					s = simbolos.inserirConst(lexema, "string");
-				}else if(lexema == "FFh"){
-					s = simbolos.inserirConst(lexema, "boolean");
+				}else{
+					System.err.println(linha + ":Lexema não identificado: " + lexema);
+					System.exit(0);
 				}
-			}else{
-				//erro
 			}
-		}
-		
-		if(c == '\n' || c == 11){
-			linha++;
 		}
 		
 		return s;

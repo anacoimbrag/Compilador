@@ -43,4 +43,29 @@ public class Simbolo {
 	public String getLexema(){
 		return lexema;
 	}
+
+	public String getTipo() {
+		return tipo;
+	}
+
+	public void setTipo(String tipo) {
+		this.tipo = tipo;
+	}
+
+	public String getClasse() {
+		return classe;
+	}
+
+	public void setClasse(String classe) {
+		this.classe = classe;
+	}
+
+	public int getEndereco() {
+		return endereco;
+	}
+
+	public void setEndereco(int endereco) {
+		this.endereco = endereco;
+	}
+	
 }

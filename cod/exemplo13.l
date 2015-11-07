@@ -1,13 +1,16 @@
+/* Exemplo de Programa na linguagem L */
+
 int n;
 string nome;
 boolean naoTerminou;
 final MAXITER=10;
-/*blablabla*/
+
 begin
-  write,"Digite seu nome ";
+  write,"Digite seu nome: ";
+  writeln,"Ola' ",nome;
   readln,nome;
   naoTerminou=TRUE;
-  n=0;
+  n=0
   while naoTerminou begin
     writeln,"Ola' ",nome;
     n=n+1;
