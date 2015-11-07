@@ -244,7 +244,6 @@ public class Parse {
 						break;
 					case "tipo_inteiro":
 						endereco = memoria.alocarInteiro();
-						System.out.println("contador: " + memoria.contador + "-endereco:" + endereco + "-lexema:" + temp.getLexema());
 						codigo.write("sword ? ;inteiro " + temp.getLexema());
 						codigo.newLine();
 						break;
@@ -446,16 +445,30 @@ public class Parse {
 			}
 			
 			codigo.write("jmp " + RotuloInicio);
+			codigo.newLine();
 			codigo.write(RotuloFim + ":");
+			codigo.newLine();
 		}else if(s.getToken() == tabela.IF){
 			casaToken(tabela.IF);
+			String RotuloFalso = rotulo.novoRotulo();
+			String RotuloFim = rotulo.novoRotulo();
+			
 			/* Acao Semantica */
 			Exp_tipo = exp();
+			
 			if(!Exp_tipo.equals("tipo_logico")){
 				//erro
 				System.err.println(lexico.linha + ":tipos incompativeis.");
 				System.exit(0);
 			}
+			
+			codigo.write("mov ax, DS:[" + Exp_end + "]");
+			codigo.newLine();
+			codigo.write("cmp ax, 0");
+			codigo.newLine();
+			codigo.write("je " + RotuloFalso);
+			codigo.newLine();
+			
 			if(s.getToken() == tabela.ID || s.getToken() == tabela.WHILE || s.getToken() == tabela.IF || s.getToken() == tabela.READLN || s.getToken() == tabela.WRITE || s.getToken() == tabela.WRITELN){
 				C();
 			}else if(s.getToken() == tabela.BEGIN){
@@ -463,11 +476,17 @@ public class Parse {
 			}
 			if(s.getToken() == tabela.ELSE){
 				casaToken(tabela.ELSE);
+				codigo.write("jmp " + RotuloFim);
+				codigo.newLine();
+				codigo.write(RotuloFalso + ":");
+				
 				if(s.getToken() == tabela.ID || s.getToken() == tabela.WHILE || s.getToken() == tabela.IF || s.getToken() == tabela.READLN || s.getToken() == tabela.WRITE || s.getToken() == tabela.WRITELN){
 					C();
 				}else if(s.getToken() == tabela.BEGIN){
 					B();
 				}
+				
+				codigo.write(RotuloFim + ":");
 			}
 		}else if(s.getToken() == tabela.READLN){
 			casaToken(tabela.READLN);
@@ -477,13 +496,186 @@ public class Parse {
 				System.out.println(lexico.linha + ":tipos incompativeis.");
 				System.exit(0);
 			}
+			tmp = s;
 			casaToken(tabela.ID);
 			casaToken(tabela.DOTCOMMA);
+			
+			int bufferEnd = memoria.alocarTempString();
+			memoria.contTemp += 3;
+			codigo.write("mov dx, " + bufferEnd);
+			codigo.newLine();
+			codigo.write("mov al, 0FFh");
+			codigo.newLine();
+			codigo.write("mov ds:[" + bufferEnd + "], al");
+			codigo.newLine();
+			codigo.write("mov ah, 0Ah");
+			codigo.newLine();
+			codigo.write("int 21h");
+			codigo.newLine();
+			codigo.newLine();
+			
+			codigo.write("mov ah, 02h");
+			codigo.newLine();
+			codigo.write("mov dl, 0Dh");
+			codigo.newLine();
+			codigo.write("int 21h");
+			codigo.newLine();
+			codigo.write("mov DL, 0Ah");
+			codigo.newLine();
+			codigo.write("int 21h");
+			codigo.newLine();
+			codigo.newLine();
+			
+			codigo.write("mov di, " + bufferEnd+2 + ";posição do string");
+			codigo.newLine();
+			codigo.write("mov si, " + tmp.getEnd());
+			codigo.write("mov ax, 0 ;acumulador");
+			codigo.newLine();
+			codigo.write("mov cx, 10 ;base decimal");
+			codigo.newLine();
+			codigo.write("mov dx, 1 ;valor sinal +");
+			codigo.newLine();
+			codigo.write("mov bh, 0");
+			codigo.newLine();
+			codigo.write("mov bl, ds:[di] ;caractere");
+			codigo.newLine();
+			codigo.write("cmp bx, 2Dh ;verifica sinal");
+			codigo.newLine();
+			String rot = rotulo.novoRotulo();
+			codigo.write("jne " + rot + " ;se não negativo");
+			codigo.newLine();
+			codigo.write("mov dx, -1 ;valor sinal -");
+			codigo.newLine();
+			codigo.write("add di, 1 ;incrementa base");
+			codigo.newLine();
+			codigo.write("mov bl, ds:[di] ;próximo caractere");
+			codigo.newLine();
+			codigo.write(rot + ":");
+			codigo.newLine();
+			codigo.write("push dx ;empilha sinal");
+			codigo.newLine();
+			codigo.write("mov dx, 0 ;reg. multiplicação");
+			codigo.newLine();
+			String rot1 = rotulo.novoRotulo();
+			codigo.write(rot1 + ":");
+			codigo.newLine();
+			codigo.write("cmp bx, 0dh ;verifica fim string");
+			codigo.newLine();
+			String rot2 = rotulo.novoRotulo();
+ 			codigo.write("je " + rot2 + " ;salta se fim string");
+ 			codigo.newLine();
+			codigo.write("imul cx ;mult. 10");
+			codigo.newLine();
+			codigo.write("add bx, -48 ;converte caractere");
+			codigo.newLine();
+			codigo.write("add ax, bx ;soma valor caractere");
+			codigo.newLine();
+			codigo.write("add di, 1 ;incrementa base");
+			codigo.newLine();
+			codigo.write("mov bh, 0");
+			codigo.newLine();
+			codigo.write("mov bl, ds:[di] ;próximo caractere");
+			codigo.newLine();
+			codigo.write("jmp " + rot1 + " ;loop");
+			codigo.newLine();
+			codigo.write(rot2 + ":");
+			codigo.newLine();
+			codigo.write("pop cx ;desempilha sinal");
+			codigo.newLine();
+			codigo.write("imul cx ;mult. sinal");
+			codigo.newLine();
+			codigo.newLine();	
+
 		}else if(s.getToken() == tabela.WRITE || s.getToken() == tabela.WRITELN){
+			int stringEnd = memoria.novoTemp();
+			
+			codigo.write("mov di, " + stringEnd + " ;end. string temp.");
+			codigo.newLine();
+			codigo.write("mov cx, 0 ;contador");
+			codigo.newLine();
+			codigo.write("cmp ax,0 ;verifica sinal");
+			codigo.newLine();
+			String rot = rotulo.novoRotulo();
+			codigo.write("jge " + rot + " ;salta se número positivo");
+			codigo.newLine();
+			codigo.write("mov bl, 2Dh ;senão, escreve sinal –");
+			codigo.newLine();
+			codigo.write("mov ds:[di], bl");
+			codigo.newLine();
+			codigo.write("add di, 1 ;incrementa índice");
+			codigo.newLine();
+			codigo.write("neg ax ;toma módulo do número");
+			codigo.newLine();
+			codigo.write(rot + ":");
+			codigo.newLine();
+			codigo.write("mov bx, 10 ;divisor");
+			codigo.newLine();
+			String rot1 = rotulo.novoRotulo();
+			codigo.write(rot1 + ":");
+			codigo.newLine();
+			codigo.write("add cx, 1 ;incrementa contador");
+			codigo.newLine();
+			codigo.write("mov dx, 0 ;estende 32bits p/ div.");
+			codigo.newLine();
+			codigo.write("idiv bx ;divide DXAX por BX");
+			codigo.newLine();
+			codigo.write("push dx ;empilha valor do resto");
+			codigo.newLine();
+			codigo.write("cmp ax, 0 ;verifica se quoc. é 0");
+			codigo.newLine();
+			codigo.write("jne " + rot1 + " ;se não é 0, continua");
+			codigo.newLine();
+			codigo.write(";agora, desemp. os valores e escreve o string");
+			codigo.newLine();
+			String rot2 = rotulo.novoRotulo();
+			codigo.write(rot2 + ":");
+			codigo.newLine();
+			codigo.write("pop dx ;desempilha valor");
+			codigo.newLine();
+			codigo.write("add dx, 30h ;transforma em caractere");
+			codigo.newLine();
+			codigo.write("mov ds:[di],dl ;escreve caractere");
+			codigo.newLine();
+			codigo.write("add di, 1 ;incrementa base");
+			codigo.newLine();
+			codigo.write("add cx, -1 ;decrementa contador");
+			codigo.newLine();
+			codigo.write("cmp cx, 0 ;verifica pilha vazia");
+			codigo.newLine();
+			codigo.write("jne " + rot2 + " ;se não pilha vazia, loop");
+			codigo.newLine();
+			codigo.write(";grava fim de string");
+			codigo.newLine();
+			codigo.write("mov dl, 024h ;fim de string");
+			codigo.newLine();
+			codigo.write("mov ds:[di], dl ;grava '$'");
+			codigo.newLine();
+			codigo.write(";exibe string");
+			codigo.newLine();
+			codigo.write("mov dx, " + stringEnd);
+			codigo.newLine();
+			codigo.write("mov ah, 09h");
+			codigo.newLine();
+			codigo.write("int 21h");
+			codigo.newLine();
+			codigo.newLine();
+			
 			if(s.getToken() == tabela.WRITE)
 				casaToken(tabela.WRITE);
-			else if(s.getToken() == tabela.WRITELN)
+			else if(s.getToken() == tabela.WRITELN){
 				casaToken(tabela.WRITELN);
+				codigo.write("mov ah, 02h");
+				codigo.newLine();
+				codigo.write("mov dl, 0Dh");
+				codigo.newLine();
+				codigo.write("int 21h");
+				codigo.newLine();
+				codigo.write("mov DL, 0Ah");
+				codigo.newLine();
+				codigo.write("int 21h");
+				codigo.newLine();
+				codigo.newLine();
+			}
 			casaToken(tabela.COMMA);
 			Exp_tipo = exp();
 			if(!(Exp_tipo.equals("tipo_inteiro") || Exp_tipo.equals("tipo_string") || Exp_tipo.equals("tipo_byte"))){
@@ -500,11 +692,13 @@ public class Parse {
 					System.exit(0);
 				}
 			}
+			
 			casaToken(tabela.DOTCOMMA);
 		}else if(s.getToken() == tabela.DOTCOMMA){
 			casaToken(tabela.DOTCOMMA);
 		}
-		
+		rotulo.resetRotulo();
+		memoria.restetTemp();
 	}
 	
 	String exp() throws Exception{
@@ -902,7 +1096,6 @@ public class Parse {
 				F_tipo = s.getTipo();
 			}
 			F_end = s.getEndereco();
-			System.out.println(F_end + " - " + s.getLexema());
 			casaToken(tabela.ID);
 		}
 		

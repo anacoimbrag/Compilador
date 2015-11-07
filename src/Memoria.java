@@ -8,6 +8,10 @@ public class Memoria {
 		contTemp = 0;
 	}
 	
+	public void restetTemp(){
+		contTemp = 0;
+	}
+	
 	public void alocarTemp(){
 		contador += 16384;
 	}
