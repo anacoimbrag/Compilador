@@ -1,9 +1,11 @@
 
 public class Memoria {
 	public static int contador;
+	public static int contTemp;
 	
 	public Memoria(){
 		contador = 0;
+		contTemp = 0;
 	}
 	
 	public void alocarTemp(){
@@ -11,18 +13,54 @@ public class Memoria {
 	}
 	
 	public int alocarByte(){
-		return contador++;
+		int tmp = contador;
+		contador++;
+		return tmp;
 	}
 	
 	public int alocarLogico(){
-		return contador++;
+		int tmp = contador;
+		contador++;
+		return tmp;
 	}
 	
 	public int alocarInteiro(){
-		return contador += 2;
+		int tmp = contador;
+		contador += 2;
+		return tmp;
 	}
 	
 	public int alocarString(){
-		return contador += 100;
+		int tmp = contador;
+		contador += 100;
+		return tmp;
+	}
+	
+	public int novoTemp(){
+		return contTemp;
+	}
+	
+	public int alocarTempByte(){
+		int tmp = contTemp;
+		contTemp++;
+		return tmp;
+	}
+	
+	public int alocarTempLogico(){
+		int tmp = contTemp;
+		contTemp++;
+		return tmp;
+	}
+	
+	public int alocarTempInteiro(){
+		int tmp = contTemp;
+		contTemp += 2;
+		return tmp;
+	}
+	
+	public int alocarTempString(){
+		int tmp = contTemp;
+		contTemp += 100;
+		return tmp;
 	}
 }

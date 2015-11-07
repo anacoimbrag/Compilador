@@ -11,6 +11,11 @@ public class Parse {
 	Memoria memoria;
 	int endereco = memoria.contador;
 	
+	int F_end = 0;
+	int T_end = 0;
+	int Exps_end = 0;
+	int Exp_end = 0;
+	
 	Parse(BufferedReader arquivo){
 		try{
 			this.arquivo = arquivo;
@@ -19,10 +24,6 @@ public class Parse {
 			s = lexico.analisar(lexico.dev, arquivo);
 			memoria = new Memoria();
 			codigo = new BufferedWriter(new FileWriter("codigo.asm"));
-			codigo.write("dseg SEGMENT PUBLIC ;início seg. dados\n" + 
-					"byte 4000h DUP(?) ;temporários\n" +
-					"dseg ENDS ;fim seg. dados\n");
-			memoria.alocarTemp();
 			if(s == null){ // comentario
 				s = lexico.analisar(lexico.dev, arquivo);
 			}
@@ -55,11 +56,34 @@ public class Parse {
 			 System.exit(0);
 		 }
 		 if(s != null){
+			codigo.write("sseg SEGMENT STACK ;início seg. pilha");
+			codigo.newLine();
+			codigo.write("byte 4000h DUP(?) ;dimensiona pilha");
+			codigo.newLine();
+			codigo.write("sseg ENDS ;fim seg. pilha");
+			codigo.newLine();
+			codigo.newLine();
+			codigo.write("dseg SEGMENT PUBLIC ;início seg. dados");
+			codigo.newLine();
+			codigo.write("byte 4000h DUP(?) ;temporários");
+			codigo.newLine();
+			memoria.alocarTemp();
 	 		while(s.getToken() == tabela.FINAL || s.getToken() == tabela.INT || s.getToken() == tabela.BOOLEAN || s.getToken() == tabela.BYTE || s.getToken() == tabela.STRING){
 				D();
 			}
+	 		codigo.write("dseg ENDS ;fim seg. dados");
+	 		codigo.newLine();
+	 		codigo.newLine();
+	 		codigo.write("cseg SEGMENT PUBLIC ;início seg. código");
+	 		codigo.newLine();
+	 		codigo.write("ASSUME CS:cseg, DS:dseg");
+	 		codigo.newLine();
+	 		codigo.write("strt:");
+	 		codigo.newLine();
 			B();
-			//System.out.println("Finalizou.>>" + lexico.EOF);
+			codigo.write("cseg ENDS ;fim seg. código");
+			codigo.newLine();
+			codigo.write("END strt ;fim programa");
 			if(!lexico.EOF){
 				System.err.println(lexico.linha + ":Token não esperado: " + s.getLexema());
 				System.exit(0);
@@ -88,42 +112,42 @@ public class Parse {
 			if(s.getToken() == tabela.MINUS){
 				minus = true;
 				casaToken(tabela.MINUS);
-				if(s.getTipo().equals("tipo-string")){
+				if(s.getTipo().equals("tipo_string")){
 					System.err.println(lexico.linha + ":tipos incompativeis.");
 					System.exit(0);
 				}
+			}else{
+				minus = false;
 			}
 			
 			/* Acao Semantica */
 			temp.setTipo(s.getTipo());
 			String lexTemp = s.getLexema();
 			if(s.getLexema().toLowerCase().equals("true")){
-				lexTemp = "0h";
-			}else if(s.getLexema().toLowerCase().equals("false")){
 				lexTemp = "FFh";
+			}else if(s.getLexema().toLowerCase().equals("false")){
+				lexTemp = "0h";
 			}
 			if(minus){
-				codigo.write("dseg SEGMENT PUBLIC ;início seg. dados\n" + 
-						"byte -" + lexTemp + ";temporários\n" +
-						"dseg ENDS ;fim seg. dados\n");
+				codigo.write("byte -" + lexTemp + " ; valor negativo " + temp.getLexema());
+				codigo.newLine();
 			}else{
-				codigo.write("dseg SEGMENT PUBLIC ;início seg. dados\n" + 
-						"byte " + lexTemp + ";temporários\n" +
-						"dseg ENDS ;fim seg. dados\n");
+				codigo.write("byte " + lexTemp + "; valor positivo " + temp.getLexema());
+				codigo.newLine();
 			}
 			
 			temp.setEndereco(endereco);
 			switch(temp.getTipo()){
-				case "tipo-byte":
+				case "tipo_byte":
 					endereco = memoria.alocarByte();
 					break;
-				case "tipo-logico":
+				case "tipo_logico":
 					endereco = memoria.alocarLogico();
 					break;
-				case "tipo-inteiro":
+				case "tipo_inteiro":
 					endereco = memoria.alocarInteiro();
 					break;
-				case "tipo-string":
+				case "tipo_string":
 					endereco = memoria.alocarString();
 					break;
 			}
@@ -149,8 +173,14 @@ public class Parse {
 				}
 				casaToken(tabela.RECIEVE);
 				if(s.getToken() == tabela.MINUS){
-					
+					minus = true;
 					casaToken(tabela.MINUS);
+					if(s.getTipo().equals("tipo_string")){
+						System.err.println(lexico.linha + ":tipos incompativeis.");
+						System.exit(0);
+					}
+				}else{
+					minus = false;
 				}
 				/* Acao Semantica */
 				if(!temp.getTipo().equals(s.getTipo()) && !(temp.getTipo().equals("tipo_inteiro") && s.getTipo().equals("tipo_byte"))){
@@ -160,27 +190,31 @@ public class Parse {
 				}
 				String lexTemp = s.getLexema();
 				if(s.getLexema().toLowerCase().equals("true")){
-					lexTemp = "0h";
-				}else if(s.getLexema().toLowerCase().equals("false")){
 					lexTemp = "FFh";
+				}else if(s.getLexema().toLowerCase().equals("false")){
+					lexTemp = "0h";
 				}
-				codigo.write("dseg SEGMENT PUBLIC ;início seg. dados\n" + 
-						"byte " + lexTemp + ";temporários\n" +
-						"dseg ENDS ;fim seg. dados\n");
-				
+				if(minus){
+					codigo.write("byte -" + lexTemp + "; valor negativo " + temp.getLexema());
+					codigo.newLine();
+				}
+				else{
+					codigo.write("byte " + lexTemp + "; valor positivo " + temp.getLexema());
+					codigo.newLine();
+				}
 				
 					temp.setEndereco(endereco);
 					switch(temp.getTipo()){
-						case "tipo-byte":
+						case "tipo_byte":
 							endereco = memoria.alocarByte();
 							break;
-						case "tipo-logico":
+						case "tipo_logico":
 							endereco = memoria.alocarLogico();
 							break;
-						case "tipo-inteiro":
+						case "tipo_inteiro":
 							endereco = memoria.alocarInteiro();
 							break;
-						case "tipo-string":
+						case "tipo_string":
 							endereco = memoria.alocarString();
 							break;
 				}
@@ -189,29 +223,25 @@ public class Parse {
 			}else{
 				temp.setEndereco(endereco);
 				switch(temp.getTipo()){
-					case "tipo-byte":
+					case "tipo_byte":
 						endereco = memoria.alocarByte();
-						codigo.write("dseg SEGMENT PUBLIC ;início seg. dados\n" + 
-								"byte 1h ?;temporários\n" +
-								"dseg ENDS ;fim seg. dados\n");
+						codigo.write("byte 1h ? ;byte " + temp.getLexema());
+						codigo.newLine();
 						break;
-					case "tipo-logico":
+					case "tipo_logico":
 						endereco = memoria.alocarLogico();
-						codigo.write("dseg SEGMENT PUBLIC ;início seg. dados\n" + 
-								"byte 1h ?;temporários\n" +
-								"dseg ENDS ;fim seg. dados\n");
+						codigo.write("byte 1h ? ;logico " + temp.getLexema());
+						codigo.newLine();
 						break;
-					case "tipo-inteiro":
+					case "tipo_inteiro":
 						endereco = memoria.alocarInteiro();
-						codigo.write("dseg SEGMENT PUBLIC ;início seg. dados\n" + 
-								"sword ? ;temporários\n" +
-								"dseg ENDS ;fim seg. dados\n");
+						codigo.write("sword ? ;inteiro " + temp.getLexema());
+						codigo.newLine();
 						break;
-					case "tipo-string":
+					case "tipo_string":
 						endereco = memoria.alocarString();
-						codigo.write("dseg SEGMENT PUBLIC ;início seg. dados\n" + 
-								"byte 100h DUP(?);temporários\n" +
-								"dseg ENDS ;fim seg. dados\n");
+						codigo.write("byte 100h DUP(?) ;string " + temp.getLexema());
+						codigo.newLine();
 						break;
 				}
 			}
@@ -239,7 +269,62 @@ public class Parse {
 						System.out.println(lexico.linha+"tipos incompativeis.");
 						System.exit(0);
 					}
+					
+					String lexTemp = s.getLexema();
+					if(s.getLexema().toLowerCase().equals("true")){
+						lexTemp = "FFh";
+					}else if(s.getLexema().toLowerCase().equals("false")){
+						lexTemp = "0h";
+					}
+					if(minus){
+						codigo.write("byte -" + lexTemp + "; valor negativo " + temp.getLexema());
+						codigo.newLine();
+					}
+					else{
+						codigo.write("byte " + lexTemp + "; valor positivo " + temp.getLexema());
+						codigo.newLine();
+					}
+					
+					temp.setEndereco(endereco);
+					switch(temp.getTipo()){
+						case "tipo_byte":
+							endereco = memoria.alocarByte();
+							break;
+						case "tipo_logico":
+							endereco = memoria.alocarLogico();
+							break;
+						case "tipo_inteiro":
+							endereco = memoria.alocarInteiro();
+							break;
+						case "tipo_string":
+							endereco = memoria.alocarString();
+							break;
+					}
+					
 					casaToken(tabela.CONST);
+				}else{
+					temp.setEndereco(endereco);
+					switch(temp.getTipo()){
+						case "tipo_byte":
+							endereco = memoria.alocarByte();
+							codigo.write("byte 1h ? ;byte " + temp.getLexema());
+							codigo.newLine();
+							break;
+						case "tipo_logico":
+							endereco = memoria.alocarLogico();
+							codigo.write("byte 1h ? ;logico " + temp.getLexema());
+							codigo.newLine();
+							break;
+						case "tipo_inteiro":
+							endereco = memoria.alocarInteiro();
+							codigo.write("sword ? ;inteiro " + temp.getLexema());
+							break;
+						case "tipo_string":
+							endereco = memoria.alocarString();
+							codigo.write("byte 100h DUP(?) ; string " + temp.getLexema());
+							codigo.newLine();
+							break;
+					}
 				}
 			}
 		}
@@ -486,6 +571,15 @@ public class Parse {
 		/* Acao Semantica */
 		String F_tipo = F();
 		String T_tipo = F_tipo;
+		T_end = F_end;
+		/**
+		 * op -> operacao
+		 * 1 - multiplicacao
+		 * 2 - divisao
+		 * 3 - and
+		 * 
+		 */
+		int op = 0;
 		while(s.getToken() == tabela.MULT || s.getToken() == tabela.DIVIDE || s.getToken() == tabela.AND){
 			if(s.getToken() == tabela.MULT){
 				if(F_tipo.equals("tipo_string")){
@@ -493,6 +587,7 @@ public class Parse {
 					System.out.println(lexico.linha + ":tipos incompativeis.");
 					System.exit(0);
 				}
+				op = 1;
 				casaToken(tabela.MULT);
 			}else if(s.getToken() == tabela.DIVIDE){
 				if(F_tipo.equals("tipo_string")){
@@ -500,9 +595,7 @@ public class Parse {
 					System.out.println(lexico.linha + ":tipos incompativeis.");
 					System.exit(0);
 				}
-				if(!F_tipo.equals("tipo_inteiro")){
-					//converter para inteiro
-				}
+				op = 2;
 				casaToken(tabela.DIVIDE);
 			}else if(s.getToken() == tabela.AND){
 				if(F_tipo.equals("tipo_string")){
@@ -510,9 +603,54 @@ public class Parse {
 					System.out.println(lexico.linha + ":tipos incompativeis.");
 					System.exit(0);
 				}
+				op = 3;
 				casaToken(tabela.AND);
 			}
 			String F1_tipo = F();
+			
+			codigo.write("mov ax, DS:[" + T_end + "]");
+			codigo.newLine();
+			codigo.write("mov bx, DS:[" + F_end + "]");
+			codigo.newLine();
+			if(op == 2){
+				if(!F_tipo.equals("tipo_inteiro")){
+					//converter para inteiro
+					codigo.write("cwd ; conversao para inteiro");
+					codigo.newLine();
+				}
+				if(!F1_tipo.equals("tipo_inteiro")){
+					codigo.write("mov cx, DS:[ax] ; salvar o que tinha em ax");
+					codigo.newLine();
+					codigo.write("mov ax, DS:[" + F_end + "] ; mover F1.end para ax");
+					codigo.newLine();
+					codigo.write("cwd ; conversao para inteiro");
+					codigo.newLine();
+					codigo.write("mov bx, DS:[ax] ; voltar F1.end para bx");
+					codigo.newLine();
+					codigo.write("mov ax, DS:[cx] voltar valor anterior de ax");
+					codigo.newLine();
+				}
+			}
+			
+			switch(op){
+				case 1:
+					codigo.write("imul bx ; multiplicacao");
+					codigo.newLine();
+					break;
+				case 2:
+					codigo.write("idiv bx ; divisao");
+					codigo.newLine();
+					break;
+				case 3:
+					codigo.write("or ax, bx ; or");
+					codigo.newLine();
+					break;
+			}
+			
+			T_end = memoria.novoTemp();
+			codigo.write("mov DS:[" + T_end + "], ax");
+			codigo.newLine();
+			
 			/* Acao Semantica */
 			if(!T_tipo.equals(F1_tipo) || !(T_tipo.equals("tipo_inteiro") && F1_tipo.equals("tipo_byte") || F1_tipo.equals("tipo_inteiro") && T_tipo.equals("tipo_byte"))){
 				//erro
@@ -533,6 +671,7 @@ public class Parse {
 		if(s.getToken() == tabela.OPPAR){
 			casaToken(tabela.OPPAR);
 			F_tipo = exp();
+			F_end = Exp_end;
 			casaToken(tabela.CLPAR);
 		}else if(s.getToken() == tabela.NOT){
 			if(F_tipo.equals("tipo_string")){
@@ -546,10 +685,48 @@ public class Parse {
 			casaToken(tabela.NOT);
 			/* Acao Semantica */
 			F_tipo = "tipo_inteiro"; 
+			int Fend = F_end;
 			F();
+			Fend = memoria.novoTemp();
+			codigo.write("mov ax, DS:[" + F_end + "] ;");
+			codigo.newLine();
+			codigo.write("not ax");
+			codigo.write("mov DS:[" + Fend + "], ax");
+			F_end = Fend;
 		}else if(s.getToken() == tabela.CONST){
 			/* Acao Semantica */
 			F_tipo = s.getTipo();
+			if(s.getTipo().equals("tipo_string")){
+				//declarar constante na área de dados:
+				codigo.newLine();
+				codigo.write("dseg SEGMENT PUBLIC");
+				codigo.newLine();
+				codigo.write("byte " + s.getLexema().substring(0, s.getLexema().length() - 2) + "$" + s.getLexema().charAt(s.getLexema().length() - 1));
+				codigo.newLine();
+				codigo.write("dseg ENDS");
+				codigo.newLine();
+				codigo.newLine();
+				F_end = endereco;
+				memoria.alocarString();
+			}else{
+				String lexTemp = s.getLexema();
+				if(s.getLexema().toLowerCase().equals("true"))
+					lexTemp = "FFh";
+				else if(s.getLexema().toLowerCase().equals("false"))
+					lexTemp = "0h";
+				F_end = memoria.novoTemp();
+				codigo.write("mov ax, " + lexTemp + " ; const " + s.getLexema());
+				codigo.newLine();
+				codigo.write("mov DS:[" + F_end + "], ax");
+				codigo.newLine();
+				if(s.getTipo().equals("tipo_byte")){
+					memoria.alocarTempByte();
+				}else if(s.getTipo().equals("tipo_logico")){
+					memoria.alocarTempLogico();
+				}else if(s.getTipo().equals("tipo_inteiro")){
+					memoria.alocarTempInteiro();
+				}
+			}
 			casaToken(tabela.CONST);
 		}else if(s.getToken() == tabela.ID){
 			/* Acao Semantica */
@@ -559,6 +736,7 @@ public class Parse {
 				System.exit(0);
 			}else{
 				F_tipo = s.getTipo();
+				F_end = s.getEndereco();
 			}
 			casaToken(tabela.ID);
 		}
