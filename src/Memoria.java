@@ -40,6 +40,12 @@ public class Memoria {
 		return tmp;
 	}
 	
+	public int alocarString(int tam){
+		int tmp = contador;
+		contador += tam;
+		return tmp;
+	}
+	
 	public int novoTemp(){
 		return contTemp;
 	}
