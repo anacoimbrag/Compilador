@@ -1,23 +1,23 @@
-sseg SEGMENT STACK ;inï¿½cio seg. pilha
+sseg SEGMENT STACK ;início seg. pilha
 byte 4000h DUP(?) ;dimensiona pilha
 sseg ENDS ;fim seg. pilha
 
-dseg SEGMENT PUBLIC ;inï¿½cio seg. dados
-byte 4000h DUP(?) ;temporï¿½rios
+dseg SEGMENT PUBLIC ;início seg. dados
+byte 4000h DUP(?) ;temporários
 sword ? ;inteiro n
 byte 100h DUP(?) ;string nome
 byte ? ;logico naoterminou
 byte 10; valor positivo maxiter
 dseg ENDS ;fim seg. dados
 
-cseg SEGMENT PUBLIC ;inï¿½cio seg. cï¿½digo
+cseg SEGMENT PUBLIC ;início seg. código
 ASSUME CS:cseg, DS:dseg
 strt:
 mov ax, dseg
 mov ds, ax
 
 dseg SEGMENT PUBLIC
-byte "digite seu nome $"
+byte "digite seu nome: $"
 dseg ENDS
 
 mov dx, 16644
@@ -36,14 +36,14 @@ int 21h
 mov DL, 0Ah
 int 21h
 
-mov di, 02;posiï¿½ï¿½o do string
+mov di, 02;posição do string
 mov si, 16386
 
 R0:
 mov al, ds:[di]
 cmp al, 0dh ;verifica fim string
 je R1 ;salta se fim string
-mov ds:[si], al ;prï¿½ximo caractere
+mov ds:[si], al ;próximo caractere
 add di, 1 ;incrementa base
 add si, 1
 jmp R0 ;loop
@@ -69,7 +69,7 @@ dseg SEGMENT PUBLIC
 byte "ola' $"
 dseg ENDS
 
-mov dx, 16661
+mov dx, 16662
 mov ah, 09h
 int 21h
 
@@ -85,23 +85,21 @@ int 21h
 
 mov al, 1 ; const 1
 mov DS:[0], al
-
 mov ax, DS:[16384]
 mov bx, DS:[0]
 add ax, bx ; plus
 cwd ; converter pra inteiro
 mov DS:[1], ax
-
-mov ax, DS:[1]
+mov al, DS:[1]
 mov DS:[16384], ax
-
 mov ax, DS:[16384]
-cwd
 mov cx, ax
-mov ax, DS:[16642]
-cwd
+mov bl, DS:[16642]
+mov al, bl
+mov ah, 0
 mov bx, ax
 mov ax, cx
+
 cmp ax, bx
 jl R4
 mov AL, 0
@@ -110,16 +108,11 @@ R4:
 mov AL, 0FFh
 R5:
 mov DS:[0], AL
-
-
 mov al, DS:[0]
-mov DS:[16642], al
-
+mov DS:[16642], ax
 jmp R2
 R3:
-
 mov ah,4Ch
 int 21h
-cseg ENDS ;fim seg. cï¿½digo
-
+cseg ENDS ;fim seg. código
 END strt ;fim programa

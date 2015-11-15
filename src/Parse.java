@@ -530,72 +530,35 @@ public class Parse {
 			codigo.newLine();
 			
 			String rot2 = "";
-			if(tmp.getTipo().equals("tipo_string")){
-				codigo.write("mov si, " + tmp.getEnd());
-				codigo.newLine();
-				codigo.newLine();
-				String rotString = rotulo.novoRotulo();
-				codigo.write(rotString + ":");
-				codigo.newLine();
-				codigo.write("mov al, ds:[di]");
-				codigo.newLine();
-				codigo.write("cmp al, 0dh ;verifica fim string");
-				codigo.newLine();
-				rot2 = rotulo.novoRotulo();
-	 			codigo.write("je " + rot2 + " ;salta se fim string");
-	 			codigo.newLine();
-	 			codigo.write("mov ds:[si], al ;próximo caractere");
-				codigo.newLine();
-				codigo.write("add di, 1 ;incrementa base");
-				codigo.newLine();
-				codigo.write("add si, 1");
-				codigo.newLine();
-				codigo.write("jmp " + rotString + " ;loop");
-				codigo.newLine();
-				codigo.write(rot2 + ":");
-				codigo.newLine();
-				codigo.write("mov al, 024h ;fim de string");
-				codigo.newLine();
-				codigo.write("mov ds:[si], al ;grava '$'");
-				codigo.newLine();
-				codigo.newLine();
-			}else{
-				codigo.write("mov ax, 0 ;acumulador");
-				codigo.newLine();
-				codigo.write("mov cx, 10 ;base decimal");
-				codigo.newLine();
-				codigo.write("mov dx, 1 ;valor sinal +");
-				codigo.newLine();
-				codigo.write("mov bh, 0");
-				codigo.newLine();
-				codigo.write("mov bl, ds:[di] ;caractere");
-				codigo.newLine();
-				codigo.write("cmp bx, 2Dh ;verifica sinal");
-				codigo.newLine();
-				String rot = rotulo.novoRotulo();
-				codigo.write("jne " + rot + " ;se não negativo");
-				codigo.newLine();
-				codigo.write("mov dx, -1 ;valor sinal -");
-				codigo.newLine();
-				codigo.write("add di, 1 ;incrementa base");
-				codigo.newLine();
-				codigo.write("mov bl, ds:[di] ;próximo caractere");
-				codigo.newLine();
-				codigo.write(rot + ":");
-				codigo.newLine();
-				codigo.write("push dx ;empilha sinal");
-				codigo.newLine();
-				codigo.write("mov dx, 0 ;reg. multiplicação");
-				codigo.newLine();
-				rot2 = rotulo.novoRotulo();
-				codigo.write(rot2 + ":");
-				codigo.newLine();
-				codigo.write("pop cx ;desempilha sinal");
-				codigo.newLine();
-				codigo.write("imul cx ;mult. sinal");
-				codigo.newLine();
-				codigo.newLine();	
-			}
+			codigo.write("mov si, " + tmp.getEnd());
+			codigo.newLine();
+			codigo.newLine();
+			String rotString = rotulo.novoRotulo();
+			codigo.write(rotString + ":");
+			codigo.newLine();
+			codigo.write("mov al, ds:[di]");
+			codigo.newLine();
+			codigo.write("cmp al, 0dh ;verifica fim string");
+			codigo.newLine();
+			rot2 = rotulo.novoRotulo();
+ 			codigo.write("je " + rot2 + " ;salta se fim string");
+ 			codigo.newLine();
+ 			codigo.write("mov ds:[si], al ;próximo caractere");
+			codigo.newLine();
+			codigo.write("add di, 1 ;incrementa base");
+			codigo.newLine();
+			codigo.write("add si, 1");
+			codigo.newLine();
+			codigo.write("jmp " + rotString + " ;loop");
+			codigo.newLine();
+			codigo.write(rot2 + ":");
+			codigo.newLine();
+			codigo.write("mov al, 024h ;fim de string");
+			codigo.newLine();
+			codigo.write("mov ds:[si], al ;grava '$'");
+			codigo.newLine();
+			codigo.newLine();
+
 
 		}else if(s.getToken() == tabela.WRITE || s.getToken() == tabela.WRITELN){
 			int stringEnd = memoria.novoTemp();
@@ -610,71 +573,13 @@ public class Parse {
 			}
 			casaToken(tabela.COMMA);
 			Exp_tipo = exp();
-			if(Exp_tipo.equals("tipo_string")){
-				codigo.write("mov dx, " + Exp_end);
-				codigo.newLine();
-				codigo.write("mov ah, 09h");
-				codigo.newLine();
-				codigo.write("int 21h");
-				codigo.newLine();
-				codigo.newLine();
-			}else{
-				codigo.write("mov di, " + stringEnd + " ;end. string temp.");
-				codigo.newLine();
-				codigo.write("mov cx, 0 ;contador");
-				codigo.newLine();
-				codigo.write("cmp ax,0 ;verifica sinal");
-				codigo.newLine();
-				String rot = rotulo.novoRotulo();
-				codigo.write("jge " + rot + " ;salta se número positivo");
-				codigo.newLine();
-				codigo.write("mov bl, 2Dh ;senão, escreve sinal –");
-				codigo.newLine();
-				codigo.write("mov ds:[di], bl");
-				codigo.newLine();
-				codigo.write("add di, 1 ;incrementa índice");
-				codigo.newLine();
-				codigo.write("neg ax ;toma módulo do número");
-				codigo.newLine();
-				codigo.write(rot + ":");
-				codigo.newLine();
-				codigo.write("mov bx, 10 ;divisor");
-				codigo.newLine();
-				String rot1 = rotulo.novoRotulo();
-				codigo.write(rot1 + ":");
-				codigo.newLine();
-				codigo.write("add cx, 1 ;incrementa contador");
-				codigo.newLine();
-				codigo.write("mov dx, 0 ;estende 32bits p/ div.");
-				codigo.newLine();
-				codigo.write("idiv bx ;divide DXAX por BX");
-				codigo.newLine();
-				codigo.write("push dx ;empilha valor do resto");
-				codigo.newLine();
-				codigo.write("cmp ax, 0 ;verifica se quoc. é 0");
-				codigo.newLine();
-				codigo.write("jne " + rot1 + " ;se não é 0, continua");
-				codigo.newLine();
-				codigo.write(";agora, desemp. os valores e escreve o string");
-				codigo.newLine();
-				String rot2 = rotulo.novoRotulo();
-				codigo.write(rot2 + ":");
-				codigo.newLine();
-				codigo.write("pop dx ;desempilha valor");
-				codigo.newLine();
-				codigo.write("add dx, 30h ;transforma em caractere");
-				codigo.newLine();
-				codigo.write("mov ds:[di],dl ;escreve caractere");
-				codigo.newLine();
-				codigo.write("add di, 1 ;incrementa base");
-				codigo.newLine();
-				codigo.write("add cx, -1 ;decrementa contador");
-				codigo.newLine();
-				codigo.write("cmp cx, 0 ;verifica pilha vazia");
-				codigo.newLine();
-				codigo.write("jne " + rot2 + " ;se não pilha vazia, loop");
-				codigo.newLine();
-			}
+			codigo.write("mov dx, " + Exp_end);
+			codigo.newLine();
+			codigo.write("mov ah, 09h");
+			codigo.newLine();
+			codigo.write("int 21h");
+			codigo.newLine();
+			codigo.newLine();
 			
 			if(!(Exp_tipo.equals("tipo_inteiro") || Exp_tipo.equals("tipo_string") || Exp_tipo.equals("tipo_byte"))){
 				//erro
@@ -685,90 +590,33 @@ public class Parse {
 				casaToken(tabela.COMMA);
 				Exp_tipo = exp();
 				
-				if(Exp_tipo.equals("tipo_string")){
-					codigo.write("mov dx, " + Exp_end);
-					codigo.newLine();
-					codigo.write("mov ah, 09h");
-					codigo.newLine();
-					codigo.write("int 21h");
-					codigo.newLine();
-					codigo.newLine();
-				}else{
-					codigo.write("mov di, " + stringEnd + " ;end. string temp.");
-					codigo.newLine();
-					codigo.write("mov cx, 0 ;contador");
-					codigo.newLine();
-					codigo.write("cmp ax,0 ;verifica sinal");
-					codigo.newLine();
-					String rot = rotulo.novoRotulo();
-					codigo.write("jge " + rot + " ;salta se número positivo");
-					codigo.newLine();
-					codigo.write("mov bl, 2Dh ;senão, escreve sinal –");
-					codigo.newLine();
-					codigo.write("mov ds:[di], bl");
-					codigo.newLine();
-					codigo.write("add di, 1 ;incrementa índice");
-					codigo.newLine();
-					codigo.write("neg ax ;toma módulo do número");
-					codigo.newLine();
-					codigo.write(rot + ":");
-					codigo.newLine();
-					codigo.write("mov bx, 10 ;divisor");
-					codigo.newLine();
-					String rot1 = rotulo.novoRotulo();
-					codigo.write(rot1 + ":");
-					codigo.newLine();
-					codigo.write("add cx, 1 ;incrementa contador");
-					codigo.newLine();
-					codigo.write("mov dx, 0 ;estende 32bits p/ div.");
-					codigo.newLine();
-					codigo.write("idiv bx ;divide DXAX por BX");
-					codigo.newLine();
-					codigo.write("push dx ;empilha valor do resto");
-					codigo.newLine();
-					codigo.write("cmp ax, 0 ;verifica se quoc. é 0");
-					codigo.newLine();
-					codigo.write("jne " + rot1 + " ;se não é 0, continua");
-					codigo.newLine();
-					codigo.write(";agora, desemp. os valores e escreve o string");
-					codigo.newLine();
-					String rot2 = rotulo.novoRotulo();
-					codigo.write(rot2 + ":");
-					codigo.newLine();
-					codigo.write("pop dx ;desempilha valor");
-					codigo.newLine();
-					codigo.write("add dx, 30h ;transforma em caractere");
-					codigo.newLine();
-					codigo.write("mov ds:[di],dl ;escreve caractere");
-					codigo.newLine();
-					codigo.write("add di, 1 ;incrementa base");
-					codigo.newLine();
-					codigo.write("add cx, -1 ;decrementa contador");
-					codigo.newLine();
-					codigo.write("cmp cx, 0 ;verifica pilha vazia");
-					codigo.newLine();
-					codigo.write("jne " + rot2 + " ;se não pilha vazia, loop");
-					codigo.newLine();
-				}
+				codigo.write("mov dx, " + Exp_end);
+				codigo.newLine();
+				codigo.write("mov ah, 09h");
+				codigo.newLine();
+				codigo.write("int 21h");
+				codigo.newLine();
+				codigo.newLine();
+					
 				if(!(Exp_tipo.equals("tipo_inteiro") || Exp_tipo.equals("tipo_string") || Exp_tipo.equals("tipo_byte"))){
 					//erro
 					System.err.println(lexico.linha + ":tipos incompativeis.");
 					System.exit(0);
 				}
-				
-				if(ln){
-					codigo.write("mov ah, 02h");
-					codigo.newLine();
-					codigo.write("mov dl, 0Dh");
-					codigo.newLine();
-					codigo.write("int 21h");
-					codigo.newLine();
-					codigo.write("mov DL, 0Ah");
-					codigo.newLine();
-					codigo.write("int 21h");
-					codigo.newLine();
-					codigo.newLine();
-				}
+			}
+			
+			if(ln){
+				codigo.write("mov ah, 02h");
+				codigo.newLine();
+				codigo.write("mov dl, 0Dh");
+				codigo.newLine();
+				codigo.write("int 21h");
+				codigo.newLine();
+				codigo.write("mov DL, 0Ah");
+				codigo.newLine();
+				codigo.write("int 21h");
+				codigo.newLine();
+				codigo.newLine();
 			}
 			
 			casaToken(tabela.DOTCOMMA);
@@ -840,18 +688,22 @@ public class Parse {
 			
 			codigo.write("mov ax, DS:[" + Exp_end + "]");
 			codigo.newLine();
-			codigo.write("cwd");
-			codigo.newLine();
-			codigo.write("mov cx, ax");
-			codigo.newLine();
-			codigo.write("mov ax, DS:[" + Exps_end + "]");
-			codigo.newLine();
-			codigo.write("cwd");
-			codigo.newLine();
-			codigo.write("mov bx, ax");
-			codigo.newLine();
-			codigo.write("mov ax, cx");
-			codigo.newLine();
+			if(exps1_tipo.equals("tipo_byte") || exps1_tipo.equals("tipo_logico")){
+				codigo.write("mov cx, ax");
+				codigo.newLine();
+				codigo.write("mov bl, DS:[" + Exps_end + "]");
+				codigo.newLine();
+				codigo.write("mov al, bl");
+				codigo.newLine();
+				codigo.write("mov ah, 0");
+				codigo.newLine();
+				codigo.write("mov bx, ax");
+				codigo.newLine();
+				codigo.write("mov ax, cx");
+				codigo.newLine();
+			}else{
+				codigo.write("mov bx, DS:[" + Exps_end + "]");
+			}
 			codigo.newLine();
 			
 			codigo.write("cmp ax, bx");
@@ -1051,19 +903,19 @@ public class Parse {
 			if(op == 2){
 				if(!F_tipo.equals("tipo_inteiro")){
 					//converter para inteiro
-					codigo.write("cwd ; conversao para inteiro");
+					codigo.write("mov ah, 0 ; conversao para inteiro");
 					codigo.newLine();
 				}
 				if(!F1_tipo.equals("tipo_inteiro")){
 					codigo.write("mov cx, DS:[ax] ; salvar o que tinha em al");
 					codigo.newLine();
-					codigo.write("mov ax, DS:[" + F_end + "] ; mover F1.end para al");
+					codigo.write("mov al, DS:[" + F_end + "] ; mover F1.end para al");
 					codigo.newLine();
-					codigo.write("cwd ; conversao para inteiro");
+					codigo.write("mov ah, 0 ; conversao para inteiro");
 					codigo.newLine();
-					codigo.write("mov bx, DS:[ax] ; voltar F1.end para bx");
+					codigo.write("mov bx, ax ; voltar F1.end para bx");
 					codigo.newLine();
-					codigo.write("mov ax, DS:[cx] voltar valor anterior de ax");
+					codigo.write("mov ax, cx voltar valor anterior de ax");
 					codigo.newLine();
 				}
 			}
@@ -1084,7 +936,6 @@ public class Parse {
 			}
 			
 			T_end = memoria.novoTemp();
-			codigo.write("cwd ; converter pra inteiro");
 			codigo.newLine();
 			codigo.write("mov DS:[" + T_end + "], ax");
 			codigo.newLine();

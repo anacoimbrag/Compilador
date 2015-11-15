@@ -1,10 +1,10 @@
 int n;
-string nome;
+int nome;
 boolean naoTerminou;
 final MAXITER=10;
 /*blablabla*/
 begin
-  write,"Digite seu nome: ";
+  write,"Digite seu nome ";
   readln,nome;
   naoTerminou=TRUE;
   n=0;
