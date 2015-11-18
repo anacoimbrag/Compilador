@@ -151,7 +151,7 @@ public class Parse {
 						b.buffer.add("sword " + lexTemp + " ; inteiro " + temp.getLexema());
 						break;
 					case "tipo_string":
-						endereco = memoria.alocarString();
+						endereco = memoria.alocarString(s.getLexema().length() - 1);
 						b.buffer.add("byte " + s.getLexema().substring(0, s.getLexema().length() - 1) + "$" + s.getLexema().charAt(s.getLexema().length() - 1));					
 						break;
 				}
@@ -221,8 +221,8 @@ public class Parse {
 							endereco = memoria.alocarInteiro();
 							break;
 						case "tipo_string":
-							b.buffer.add("byte " + s.getLexema().substring(0, s.getLexema().length() - 1) + "$" + s.getLexema().charAt(s.getLexema().length() - 1));
-							endereco = memoria.alocarString();
+							endereco = memoria.alocarString(s.getLexema().length() - 1);
+							b.buffer.add("byte " + s.getLexema().substring(0, s.getLexema().length() - 1) + "$" + s.getLexema().charAt(s.getLexema().length() - 1) + "; string " + temp.getLexema() + " em " + endereco);
 							break;
 					}
 				}
@@ -247,7 +247,7 @@ public class Parse {
 						break;
 					case "tipo_string":
 						endereco = memoria.alocarString();
-						b.buffer.add("byte 100h DUP(?) ;string " + temp.getLexema());
+						b.buffer.add("byte 100h DUP(?) ;string " + temp.getLexema() + " em " + endereco);
 						
 						break;
 				}
@@ -304,7 +304,7 @@ public class Parse {
 								break;
 							case "tipo_string":
 								b.buffer.add("byte " + s.getLexema().substring(0, s.getLexema().length() - 1) + "$" + s.getLexema().charAt(s.getLexema().length() - 1));
-								endereco = memoria.alocarString();
+								endereco = memoria.alocarString(s.getLexema().length() - 1);
 								break;
 						}
 					}
@@ -1002,7 +1002,14 @@ public class Parse {
 					b.buffer.add("sub ax, bx ; minus");
 					break;
 				case 2:
-					b.buffer.add("add ax, bx ; plus");
+					if(Exps_tipo.equals("tipo_string") && T1_tipo.equals("tipo_string")){
+						int temp1 = memoria.novoTemp();
+						b.buffer.add("mov DS:[" + temp1 + "], ax");
+						b.buffer.add("add ax, bx");
+						b.buffer.add("mov ax, DS:[" + temp1 + "]");
+					}else{
+						b.buffer.add("add ax, bx ; plus");
+					}
 					break;
 				case 3:
 					b.buffer.add("or ax, bx ; and");					
@@ -1010,7 +1017,6 @@ public class Parse {
 			}
 			
 			Exps_end = memoria.novoTemp();
-			b.buffer.add("cwd ; converter pra inteiro");
 			
 			b.buffer.add("mov DS:[" + Exps_end + "], ax");
 			
@@ -1178,6 +1184,7 @@ public class Parse {
 					memoria.alocarTempInteiro();
 				}
 			}
+			b.buffer.add("; " + s.getLexema() + " em " + F_end);
 			casaToken(tabela.CONST);
 		}else if(s.getToken() == tabela.ID){
 			/* Acao Semantica */
@@ -1189,6 +1196,7 @@ public class Parse {
 				F_tipo = s.getTipo();
 			}
 			F_end = s.getEndereco();
+			b.buffer.add("; " + s.getLexema() + " em " + s.getEndereco());
 
 			casaToken(tabela.ID);
 		}
