@@ -1,0 +1,4 @@
+begin 
+int n;
+
+end

@@ -7,9 +7,9 @@ public class Parse {
 	TabelaSimbolos tabela;
 	Simbolo s;
 	BufferedReader arquivo;
-	BufferedWriter codigo;
 	Memoria memoria;
 	Rotulo rotulo;
+	Buffer b;
 	int endereco = memoria.contador;
 	
 	int F_end = 0;
@@ -25,81 +25,75 @@ public class Parse {
 			s = lexico.analisar(lexico.dev, arquivo);
 			memoria = new Memoria();
 			rotulo = new Rotulo();
-			codigo = new BufferedWriter(new FileWriter("codigo.asm"));
+			b = new Buffer();
 			if(s == null){ // comentario
 				s = lexico.analisar(lexico.dev, arquivo);
 			}
 		}catch(Exception e){System.out.print(e.getMessage());}
 	}
 	
-	void casaToken(byte token) throws Exception{
-		if(s != null){
-			//System.out.println(s.getTipo());
-			//System.out.println(s.getClasse());
-			if(s.getToken() == token){
-				s = lexico.analisar(lexico.dev, arquivo);
-			}else{
-				if(lexico.EOF){
-					System.err.println(lexico.linha + ":Fim de Arquivo não esperado.");
-					System.exit(0);
+	void casaToken(byte token){
+		try{
+			if(s != null){
+				//System.out.println(s.getTipo());
+				//System.out.println(s.getClasse());
+				if(s.getToken() == token){
+					s = lexico.analisar(lexico.dev, arquivo);
 				}else{
-					System.err.println(lexico.linha + ":Token não esperado: " + s.getLexema());
-					System.exit(0);
-				}	
+					if(lexico.EOF){
+						System.err.println(lexico.linha + ":Fim de Arquivo não esperado.");
+						System.exit(0);
+					}else{
+						System.err.println(lexico.linha + ":Token não esperado: " + s.getLexema());
+						System.exit(0);
+					}	
+				}
 			}
+		}catch(Exception e){
+			System.err.println("casaT" + e.toString());
 		}
 	}
 	
 	
 	
-	 void S() throws Exception{
-		 if(lexico.EOF){
-			 System.err.println(lexico.linha + ":Fim de arquivo não esperado.");
-			 System.exit(0);
-		 }
-		 if(s != null){
-			codigo.write("sseg SEGMENT STACK ;início seg. pilha");
-			codigo.newLine();
-			codigo.write("byte 4000h DUP(?) ;dimensiona pilha");
-			codigo.newLine();
-			codigo.write("sseg ENDS ;fim seg. pilha");
-			codigo.newLine();
-			codigo.newLine();
-			codigo.write("dseg SEGMENT PUBLIC ;início seg. dados");
-			codigo.newLine();
-			codigo.write("byte 4000h DUP(?) ;temporários");
-			codigo.newLine();
-			memoria.alocarTemp();
-	 		while(s.getToken() == tabela.FINAL || s.getToken() == tabela.INT || s.getToken() == tabela.BOOLEAN || s.getToken() == tabela.BYTE || s.getToken() == tabela.STRING){
-				D();
-			}
-	 		codigo.write("dseg ENDS ;fim seg. dados");
-	 		codigo.newLine();
-	 		codigo.newLine();
-	 		codigo.write("cseg SEGMENT PUBLIC ;início seg. código");
-	 		codigo.newLine();
-	 		codigo.write("ASSUME CS:cseg, DS:dseg");
-	 		codigo.newLine();
-	 		codigo.write("strt:");
-	 		codigo.newLine();
-	 		codigo.write("mov ax, dseg");
-	 		codigo.newLine();
-	 		codigo.write("mov ds, ax");
-	 		codigo.newLine();
-			B();
-			codigo.write("mov ah,4Ch");
-			codigo.newLine();
-			codigo.write("int 21h");
-			codigo.newLine();
-			codigo.write("cseg ENDS ;fim seg. código");
-			codigo.newLine();
-			codigo.write("END strt ;fim programa");
-			if(!lexico.EOF){
-				System.err.println(lexico.linha + ":Token não esperado: " + s.getLexema());
-				System.exit(0);
-			}
-		 }
-		 codigo.close();
+	 void S(){
+		 try{
+			 if(lexico.EOF){
+				 System.err.println(lexico.linha + ":Fim de arquivo não esperado.");
+				 System.exit(0);
+			 }
+			 if(s != null){
+				b.buffer.add("sseg SEGMENT STACK ;início seg. pilha");
+				b.buffer.add("byte 4000h DUP(?) ;dimensiona pilha");
+				b.buffer.add("sseg ENDS ;fim seg. pilha");
+				b.buffer.add("dseg SEGMENT PUBLIC ;início seg. dados");
+				b.buffer.add("byte 4000h DUP(?) ;temporários");
+				memoria.alocarTemp();
+		 		while(s.getToken() == tabela.FINAL || s.getToken() == tabela.INT || s.getToken() == tabela.BOOLEAN || s.getToken() == tabela.BYTE || s.getToken() == tabela.STRING){
+					D();
+				}
+		 		b.buffer.add("dseg ENDS ;fim seg. dados");
+		 		b.buffer.add("cseg SEGMENT PUBLIC ;início seg. código");
+		 		b.buffer.add("ASSUME CS:cseg, DS:dseg");
+		 		b.buffer.add("strt:");
+		 		b.buffer.add("mov ax, dseg");
+		 		b.buffer.add("mov ds, ax");
+				B();
+				b.buffer.add("mov ah, 4Ch");
+				b.buffer.add("int 21h");
+				b.buffer.add("cseg ENDS ;fim seg. código");
+				b.buffer.add("END strt ;fim programa");
+				
+				b.otimizar();
+				b.criarArquivo();
+				if(!lexico.EOF){
+					System.err.println(lexico.linha + ":Token não esperado: " + s.getLexema());
+					System.exit(0);
+				}
+			 }
+		 }catch(Exception e){
+			System.err.println(e.toString());
+		}
 	}
 	
 	void D() throws Exception{
@@ -139,11 +133,9 @@ public class Parse {
 				lexTemp = "0h";
 			}
 			if(minus){
-				codigo.write("byte -" + lexTemp + " ; valor negativo " + temp.getLexema());
-				codigo.newLine();
+				b.buffer.add("byte -" + lexTemp + " ; valor negativo " + temp.getLexema());
 			}else{
-				codigo.write("byte " + lexTemp + "; valor positivo " + temp.getLexema());
-				codigo.newLine();
+				b.buffer.add("byte " + lexTemp + "; valor positivo " + temp.getLexema());
 			}
 			
 			temp.setEndereco(endereco);
@@ -205,12 +197,10 @@ public class Parse {
 					lexTemp = "0h";
 				}
 				if(minus){
-					codigo.write("byte -" + lexTemp + " ; valor negativo " + temp.getLexema());
-					codigo.newLine();
+					b.buffer.add("byte -" + lexTemp + " ; valor negativo " + temp.getLexema());
 				}
 				else{
-					codigo.write("byte " + lexTemp + " ; valor positivo " + temp.getLexema());
-					codigo.newLine();
+					b.buffer.add("byte " + lexTemp + " ; valor positivo " + temp.getLexema());
 				}
 				
 					switch(temp.getTipo()){
@@ -234,23 +224,23 @@ public class Parse {
 				switch(temp.getTipo()){
 					case "tipo_byte":
 						endereco = memoria.alocarByte();
-						codigo.write("byte ? ;byte " + temp.getLexema());
-						codigo.newLine();
+						b.buffer.add("byte ? ;byte " + temp.getLexema());
+						
 						break;
 					case "tipo_logico":
 						endereco = memoria.alocarLogico();
-						codigo.write("byte ? ;logico " + temp.getLexema());
-						codigo.newLine();
+						b.buffer.add("byte ? ;logico " + temp.getLexema());
+						
 						break;
 					case "tipo_inteiro":
 						endereco = memoria.alocarInteiro();
-						codigo.write("sword ? ;inteiro " + temp.getLexema());
-						codigo.newLine();
+						b.buffer.add("sword ? ;inteiro " + temp.getLexema());
+						
 						break;
 					case "tipo_string":
 						endereco = memoria.alocarString();
-						codigo.write("byte 100h DUP(?) ;string " + temp.getLexema());
-						codigo.newLine();
+						b.buffer.add("byte 100h DUP(?) ;string " + temp.getLexema());
+						
 						break;
 				}
 				temp.setEndereco(endereco);
@@ -287,12 +277,12 @@ public class Parse {
 						lexTemp = "0h";
 					}
 					if(minus){
-						codigo.write("byte -" + lexTemp + "; valor negativo " + temp.getLexema());
-						codigo.newLine();
+						b.buffer.add("byte -" + lexTemp + "; valor negativo " + temp.getLexema());
+						
 					}
 					else{
-						codigo.write("byte " + lexTemp + "; valor positivo " + temp.getLexema());
-						codigo.newLine();
+						b.buffer.add("byte " + lexTemp + "; valor positivo " + temp.getLexema());
+						
 					}
 					
 					temp.setEndereco(endereco);
@@ -317,22 +307,22 @@ public class Parse {
 					switch(temp.getTipo()){
 						case "tipo_byte":
 							endereco = memoria.alocarByte();
-							codigo.write("byte ? ;byte " + temp.getLexema());
-							codigo.newLine();
+							b.buffer.add("byte ? ;byte " + temp.getLexema());
+							
 							break;
 						case "tipo_logico":
 							endereco = memoria.alocarLogico();
-							codigo.write("byte ? ;logico " + temp.getLexema());
-							codigo.newLine();
+							b.buffer.add("byte ? ;logico " + temp.getLexema());
+							
 							break;
 						case "tipo_inteiro":
 							endereco = memoria.alocarInteiro();
-							codigo.write("sword ? ;inteiro " + temp.getLexema());
+							b.buffer.add("sword ? ;inteiro " + temp.getLexema());
 							break;
 						case "tipo_string":
 							endereco = memoria.alocarString();
-							codigo.write("byte 100h DUP(?) ; string " + temp.getLexema());
-							codigo.newLine();
+							b.buffer.add("byte 100h DUP(?) ; string " + temp.getLexema());
+							
 							break;
 					}
 				}
@@ -404,22 +394,22 @@ public class Parse {
 			}else{
 				conv = false;
 			}
-			codigo.write("mov al, DS:[" + Exp_end + "]");
-			codigo.newLine();
+			b.buffer.add("mov al, DS:[" + Exp_end + "]");
+			
 			if(Exp_tipo.equals("tipo_byte")){
-				codigo.write("mov ah, 0");
-				codigo.newLine();
+				b.buffer.add("mov ah, 0");
+				
 			}
-			codigo.write("mov DS:[" + tmp.getEnd() + "], ax");
-			codigo.newLine();
+			b.buffer.add("mov DS:[" + tmp.getEnd() + "], ax");
+			
 			casaToken(tabela.DOTCOMMA);
 		}else if(s.getToken() == tabela.WHILE){
 			casaToken(tabela.WHILE);
 			String RotuloInicio = rotulo.novoRotulo();
 			String RotuloFim = rotulo.novoRotulo();
 			
-			codigo.write(RotuloInicio + ":");
-			codigo.newLine();
+			b.buffer.add(RotuloInicio + ":");
+			
 			
 			/* Acao Semantica */
 			Exp_tipo = exp();
@@ -430,13 +420,10 @@ public class Parse {
 				System.exit(0);
 			}
 			
-			codigo.write("mov ax, DS:[" + Exp_end + "]");
-			codigo.newLine();
+			b.buffer.add("mov ax, DS:[" + Exp_end + "]");
+			b.buffer.add("cmp ax, 0");	
+			b.buffer.add("je " + RotuloFim);
 			
-			codigo.write("cmp ax, 0");
-			codigo.newLine();
-			codigo.write("je " + RotuloFim);
-			codigo.newLine();
 			
 			if(s.getToken() == tabela.ID || s.getToken() == tabela.WHILE || s.getToken() == tabela.IF || s.getToken() == tabela.READLN || s.getToken() == tabela.WRITE || s.getToken() == tabela.WRITELN){
 				C();
@@ -444,10 +431,10 @@ public class Parse {
 				B();
 			}
 			
-			codigo.write("jmp " + RotuloInicio);
-			codigo.newLine();
-			codigo.write(RotuloFim + ":");
-			codigo.newLine();
+			b.buffer.add("jmp " + RotuloInicio);
+			
+			b.buffer.add(RotuloFim + ":");
+			
 		}else if(s.getToken() == tabela.IF){
 			casaToken(tabela.IF);
 			String RotuloFalso = rotulo.novoRotulo();
@@ -462,12 +449,12 @@ public class Parse {
 				System.exit(0);
 			}
 			
-			codigo.write("mov ax, DS:[" + Exp_end + "]");
-			codigo.newLine();
-			codigo.write("cmp ax, 0");
-			codigo.newLine();
-			codigo.write("je " + RotuloFalso);
-			codigo.newLine();
+			b.buffer.add("mov ax, DS:[" + Exp_end + "]");
+			
+			b.buffer.add("cmp ax, 0");
+			
+			b.buffer.add("je " + RotuloFalso);
+			
 			
 			if(s.getToken() == tabela.ID || s.getToken() == tabela.WHILE || s.getToken() == tabela.IF || s.getToken() == tabela.READLN || s.getToken() == tabela.WRITE || s.getToken() == tabela.WRITELN){
 				C();
@@ -476,9 +463,9 @@ public class Parse {
 			}
 			if(s.getToken() == tabela.ELSE){
 				casaToken(tabela.ELSE);
-				codigo.write("jmp " + RotuloFim);
-				codigo.newLine();
-				codigo.write(RotuloFalso + ":");
+				b.buffer.add("jmp " + RotuloFim);
+				
+				b.buffer.add(RotuloFalso + ":");
 				
 				if(s.getToken() == tabela.ID || s.getToken() == tabela.WHILE || s.getToken() == tabela.IF || s.getToken() == tabela.READLN || s.getToken() == tabela.WRITE || s.getToken() == tabela.WRITELN){
 					C();
@@ -486,7 +473,7 @@ public class Parse {
 					B();
 				}
 				
-				codigo.write(RotuloFim + ":");
+				b.buffer.add(RotuloFim + ":");
 			}
 		}else if(s.getToken() == tabela.READLN){
 			casaToken(tabela.READLN);
@@ -502,62 +489,62 @@ public class Parse {
 			
 			int bufferEnd = memoria.alocarTempString();
 			memoria.contTemp += 3; //Deve ser alocado 259 bytes
-			codigo.write("mov dx, " + bufferEnd);
-			codigo.newLine();
-			codigo.write("mov al, 0FFh");
-			codigo.newLine();
-			codigo.write("mov ds:[" + bufferEnd + "], al");
-			codigo.newLine();
-			codigo.write("mov ah, 0Ah");
-			codigo.newLine();
-			codigo.write("int 21h");
-			codigo.newLine();
-			codigo.newLine();
+			b.buffer.add("mov dx, " + bufferEnd);
 			
-			codigo.write("mov ah, 02h");
-			codigo.newLine();
-			codigo.write("mov dl, 0Dh");
-			codigo.newLine();
-			codigo.write("int 21h");
-			codigo.newLine();
-			codigo.write("mov DL, 0Ah");
-			codigo.newLine();
-			codigo.write("int 21h");
-			codigo.newLine();
-			codigo.newLine();
+			b.buffer.add("mov al, 0FFh");
 			
-			codigo.write("mov di, " + bufferEnd+2 + ";posição do string");
-			codigo.newLine();
+			b.buffer.add("mov ds:[" + bufferEnd + "], al");
+			
+			b.buffer.add("mov ah, 0Ah");
+			
+			b.buffer.add("int 21h");
+			
+			
+			
+			b.buffer.add("mov ah, 02h");
+			
+			b.buffer.add("mov dl, 0Dh");
+			
+			b.buffer.add("int 21h");
+			
+			b.buffer.add("mov DL, 0Ah");
+			
+			b.buffer.add("int 21h");
+			
+			
+			
+			b.buffer.add("mov di, " + bufferEnd+2 + ";posição do string");
+			
 			
 			String rot2 = "";
-			codigo.write("mov si, " + tmp.getEnd());
-			codigo.newLine();
-			codigo.newLine();
+			b.buffer.add("mov si, " + tmp.getEnd());
+			
+			
 			String rotString = rotulo.novoRotulo();
-			codigo.write(rotString + ":");
-			codigo.newLine();
-			codigo.write("mov al, ds:[di]");
-			codigo.newLine();
-			codigo.write("cmp al, 0dh ;verifica fim string");
-			codigo.newLine();
+			b.buffer.add(rotString + ":");
+			
+			b.buffer.add("mov al, ds:[di]");
+			
+			b.buffer.add("cmp al, 0dh ;verifica fim string");
+			
 			rot2 = rotulo.novoRotulo();
- 			codigo.write("je " + rot2 + " ;salta se fim string");
- 			codigo.newLine();
- 			codigo.write("mov ds:[si], al ;próximo caractere");
-			codigo.newLine();
-			codigo.write("add di, 1 ;incrementa base");
-			codigo.newLine();
-			codigo.write("add si, 1");
-			codigo.newLine();
-			codigo.write("jmp " + rotString + " ;loop");
-			codigo.newLine();
-			codigo.write(rot2 + ":");
-			codigo.newLine();
-			codigo.write("mov al, 024h ;fim de string");
-			codigo.newLine();
-			codigo.write("mov ds:[si], al ;grava '$'");
-			codigo.newLine();
-			codigo.newLine();
+ 			b.buffer.add("je " + rot2 + " ;salta se fim string");
+ 			
+ 			b.buffer.add("mov ds:[si], al ;próximo caractere");
+			
+			b.buffer.add("add di, 1 ;incrementa base");
+			
+			b.buffer.add("add si, 1");
+			
+			b.buffer.add("jmp " + rotString + " ;loop");
+			
+			b.buffer.add(rot2 + ":");
+			
+			b.buffer.add("mov al, 024h ;fim de string");
+			
+			b.buffer.add("mov ds:[si], al ;grava '$'");
+			
+			
 
 
 		}else if(s.getToken() == tabela.WRITE || s.getToken() == tabela.WRITELN){
@@ -573,13 +560,77 @@ public class Parse {
 			}
 			casaToken(tabela.COMMA);
 			Exp_tipo = exp();
-			codigo.write("mov dx, " + Exp_end);
-			codigo.newLine();
-			codigo.write("mov ah, 09h");
-			codigo.newLine();
-			codigo.write("int 21h");
-			codigo.newLine();
-			codigo.newLine();
+//			b.buffer.add("mov dx, " + Exp_end);
+//			
+//			b.buffer.add("mov ah, 09h");
+//			
+//			b.buffer.add("int 21h");
+			
+			if(Exp_tipo.equals("tipo_string")){
+				b.buffer.add("mov dx, " + Exp_end);
+				
+				b.buffer.add("mov ah, 09h");
+				
+				b.buffer.add("int 21h");
+				
+				
+			}else{
+				b.buffer.add("mov di, " + stringEnd + " ;end. string temp.");
+				
+				b.buffer.add("mov cx, 0 ;contador");
+				
+				b.buffer.add("cmp ax,0 ;verifica sinal");
+				
+				String rot = rotulo.novoRotulo();
+				b.buffer.add("jge " + rot + " ;salta se numero positivo");
+				
+				b.buffer.add("mov bl, 2Dh ;senao, escreve sinal ");
+				
+				b.buffer.add("mov ds:[di], bl");
+				
+				b.buffer.add("add di, 1 ;incrementa indice");
+				
+				b.buffer.add("neg ax ;toma modulo do numero");
+				
+				b.buffer.add(rot + ":");
+				
+				b.buffer.add("mov bx, 10 ;divisor");
+				
+				String rot1 = rotulo.novoRotulo();
+				b.buffer.add(rot1 + ":");
+				
+				b.buffer.add("add cx, 1 ;incrementa contador");
+				
+				b.buffer.add("mov dx, 0 ;estende 32bits p/ div.");
+				
+				b.buffer.add("idiv bx ;divide DXAX por BX");
+				
+				b.buffer.add("push dx ;empilha valor do resto");
+				
+				b.buffer.add("cmp ax, 0 ;verifica se quoc.  0");
+				
+				b.buffer.add("jne " + rot1 + " ;se nao  0, continua");
+				
+				b.buffer.add(";agora, desemp. os valores e escreve o string");
+				
+				String rot2 = rotulo.novoRotulo();
+				b.buffer.add(rot2 + ":");
+				
+				b.buffer.add("pop dx ;desempilha valor");
+				
+				b.buffer.add("add dx, 30h ;transforma em caractere");
+				
+				b.buffer.add("mov ds:[di],dl ;escreve caractere");
+				
+				b.buffer.add("add di, 1 ;incrementa base");
+				
+				b.buffer.add("add cx, -1 ;decrementa contador");
+				
+				b.buffer.add("cmp cx, 0 ;verifica pilha vazia");
+				
+				b.buffer.add("jne " + rot2 + " ;se nao pilha vazia, loop");
+				
+			}
 			
 			if(!(Exp_tipo.equals("tipo_inteiro") || Exp_tipo.equals("tipo_string") || Exp_tipo.equals("tipo_byte"))){
 				//erro
@@ -590,13 +641,79 @@ public class Parse {
 				casaToken(tabela.COMMA);
 				Exp_tipo = exp();
 				
-				codigo.write("mov dx, " + Exp_end);
-				codigo.newLine();
-				codigo.write("mov ah, 09h");
-				codigo.newLine();
-				codigo.write("int 21h");
-				codigo.newLine();
-				codigo.newLine();
+//				b.buffer.add("mov dx, " + Exp_end);
+//				
+//				b.buffer.add("mov ah, 09h");
+//				
+//				b.buffer.add("int 21h");
+				
+				if(Exp_tipo.equals("tipo_string")){
+					b.buffer.add("mov dx, " + Exp_end);
+					
+					b.buffer.add("mov ah, 09h");
+					
+					b.buffer.add("int 21h");
+					
+					
+				}else{
+					b.buffer.add("mov di, " + stringEnd + " ;end. string temp.");
+					
+					b.buffer.add("mov cx, 0 ;contador");
+					
+					b.buffer.add("cmp ax,0 ;verifica sinal");
+					
+					String rot = rotulo.novoRotulo();
+					b.buffer.add("jge " + rot + " ;salta se numero positivo");
+					
+					b.buffer.add("mov bl, 2Dh ;senao, escreve sinal ");
+					
+					b.buffer.add("mov ds:[di], bl");
+					
+					b.buffer.add("add di, 1 ;incrementa indice");
+					
+					b.buffer.add("neg ax ;toma modulo do numero");
+					
+					b.buffer.add(rot + ":");
+					
+					b.buffer.add("mov bx, 10 ;divisor");
+					
+					String rot1 = rotulo.novoRotulo();
+					b.buffer.add(rot1 + ":");
+					
+					b.buffer.add("add cx, 1 ;incrementa contador");
+					
+					b.buffer.add("mov dx, 0 ;estende 32bits p/ div.");
+					
+					b.buffer.add("idiv bx ;divide DXAX por BX");
+					
+					b.buffer.add("push dx ;empilha valor do resto");
+					
+					b.buffer.add("cmp ax, 0 ;verifica se quoc.  0");
+					
+					b.buffer.add("jne " + rot1 + " ;se nao  0, continua");
+					
+					b.buffer.add(";agora, desemp. os valores e escreve o string");
+					
+					String rot2 = rotulo.novoRotulo();
+					b.buffer.add(rot2 + ":");
+					
+					b.buffer.add("pop dx ;desempilha valor");
+					
+					b.buffer.add("add dx, 30h ;transforma em caractere");
+					
+					b.buffer.add("mov ds:[di],dl ;escreve caractere");
+					
+					b.buffer.add("add di, 1 ;incrementa base");
+					
+					b.buffer.add("add cx, -1 ;decrementa contador");
+					
+					b.buffer.add("cmp cx, 0 ;verifica pilha vazia");
+					
+					b.buffer.add("jne " + rot2 + " ;se nao pilha vazia, loop");
+					
+				}
+				
+				
 					
 				if(!(Exp_tipo.equals("tipo_inteiro") || Exp_tipo.equals("tipo_string") || Exp_tipo.equals("tipo_byte"))){
 					//erro
@@ -606,17 +723,17 @@ public class Parse {
 			}
 			
 			if(ln){
-				codigo.write("mov ah, 02h");
-				codigo.newLine();
-				codigo.write("mov dl, 0Dh");
-				codigo.newLine();
-				codigo.write("int 21h");
-				codigo.newLine();
-				codigo.write("mov DL, 0Ah");
-				codigo.newLine();
-				codigo.write("int 21h");
-				codigo.newLine();
-				codigo.newLine();
+				b.buffer.add("mov ah, 02h");
+				
+				b.buffer.add("mov dl, 0Dh");
+				
+				b.buffer.add("int 21h");
+				
+				b.buffer.add("mov DL, 0Ah");
+				
+				b.buffer.add("int 21h");
+				
+				
 			}
 			
 			casaToken(tabela.DOTCOMMA);
@@ -686,77 +803,77 @@ public class Parse {
 				System.exit(0);
 			}
 			
-			codigo.write("mov ax, DS:[" + Exp_end + "]");
-			codigo.newLine();
-			if(exps1_tipo.equals("tipo_byte") || exps1_tipo.equals("tipo_logico")){
-				codigo.write("mov cx, ax");
-				codigo.newLine();
-				codigo.write("mov bl, DS:[" + Exps_end + "]");
-				codigo.newLine();
-				codigo.write("mov al, bl");
-				codigo.newLine();
-				codigo.write("mov ah, 0");
-				codigo.newLine();
-				codigo.write("mov bx, ax");
-				codigo.newLine();
-				codigo.write("mov ax, cx");
-				codigo.newLine();
-			}else{
-				codigo.write("mov bx, DS:[" + Exps_end + "]");
-			}
-			codigo.newLine();
+			b.buffer.add("mov ax, DS:[" + Exp_end + "]");
 			
-			codigo.write("cmp ax, bx");
-			codigo.newLine();
+			if(exps1_tipo.equals("tipo_byte") || exps1_tipo.equals("tipo_logico")){
+				b.buffer.add("mov cx, ax");
+				
+				b.buffer.add("mov bl, DS:[" + Exps_end + "]");
+				
+				b.buffer.add("mov al, bl");
+				
+				b.buffer.add("mov ah, 0");
+				
+				b.buffer.add("mov bx, ax");
+				
+				b.buffer.add("mov ax, cx");
+				
+			}else{
+				b.buffer.add("mov bx, DS:[" + Exps_end + "]");
+			}
+			
+			
+			b.buffer.add("cmp ax, bx");
+			
 
 			String RotuloVerdadeiro = rotulo.novoRotulo();
 
 			switch(op){
 				case 1:
-					codigo.write("jg " + RotuloVerdadeiro);
-					codigo.newLine();
+					b.buffer.add("jg " + RotuloVerdadeiro);
+					
 					break;
 				case 2:
-					codigo.write("jl " + RotuloVerdadeiro);
-					codigo.newLine();
+					b.buffer.add("jl " + RotuloVerdadeiro);
+					
 					break;
 				case 3:
-					codigo.write("jge " + RotuloVerdadeiro);
-					codigo.newLine();
+					b.buffer.add("jge " + RotuloVerdadeiro);
+					
 					break;
 				case 4:
-					codigo.write("jle " + RotuloVerdadeiro);
-					codigo.newLine();
+					b.buffer.add("jle " + RotuloVerdadeiro);
+					
 					break;
 				case 5:
-					codigo.write("je " + RotuloVerdadeiro);
-					codigo.newLine();
+					b.buffer.add("je " + RotuloVerdadeiro);
+					
 					break;
 				case 6:
-					codigo.write("jne " + RotuloVerdadeiro);
-					codigo.newLine();
+					b.buffer.add("jne " + RotuloVerdadeiro);
+					
 					break;
 			}
 			
-			codigo.write("mov AL, 0");
-			codigo.newLine();
+			b.buffer.add("mov AL, 0");
+			
 			
 			String RotuloFalso = rotulo.novoRotulo();
-			codigo.write("jmp " + RotuloFalso);
-			codigo.newLine();
+			b.buffer.add("jmp " + RotuloFalso);
 			
-			codigo.write(RotuloVerdadeiro + ":");
-			codigo.newLine();
-			codigo.write("mov AL, 0FFh");
-			codigo.newLine();
 			
-			codigo.write(RotuloFalso + ":");
-			codigo.newLine();
+			b.buffer.add(RotuloVerdadeiro + ":");
+			
+			b.buffer.add("mov AL, 0FFh");
+			
+			
+			b.buffer.add(RotuloFalso + ":");
+			
 			Exp_end = memoria.novoTemp();
 			/* Acao Semantica */
 			Exp_tipo = "tipo_logico";
-			codigo.write("mov DS:[" + Exp_end + "], AL");
-			codigo.newLine();
+			b.buffer.add("mov DS:[" + Exp_end + "], AL");
+			
 		}
 		
 		return Exp_tipo;
@@ -780,12 +897,12 @@ public class Parse {
 		Exps_tipo = T();
 		if(minus){
 			Exps_end = memoria.novoTemp();
-			codigo.write("mov al, DS:[" + T_end + "] ;");
-			codigo.newLine();
-			codigo.write("not al");
-			codigo.newLine();
-			codigo.write("mov DS:[" + T_end + "], al");
-			codigo.newLine();
+			b.buffer.add("mov al, DS:[" + T_end + "] ;");
+			
+			b.buffer.add("not al");
+			
+			b.buffer.add("mov DS:[" + T_end + "], al");
+			
 		}
 		Exps_end = T_end;
 		
@@ -820,10 +937,10 @@ public class Parse {
 			int Tend = T_end;
 			/* Acao Semantica */
 			String T1_tipo = T();
-			codigo.write("mov ax, DS:[" + Exps_end + "]");
-			codigo.newLine();
-			codigo.write("mov bx, DS:[" + T_end + "]");
-			codigo.newLine();
+			b.buffer.add("mov ax, DS:[" + Exps_end + "]");
+			
+			b.buffer.add("mov bx, DS:[" + T_end + "]");
+			
 			if(!Exps_tipo.equals(T1_tipo) && !(T1_tipo.equals("tipo_inteiro") && Exps_tipo.equals("tipo_byte") || Exps_tipo.equals("tipo_inteiro") && T1_tipo.equals("tipo_byte"))){
 				//erro
 				System.out.println(lexico.linha + ":tipos incompativeis.");
@@ -832,24 +949,21 @@ public class Parse {
 			
 			switch(op){
 				case 1:
-					codigo.write("sub ax, bx ; minus");
-					codigo.newLine();
+					b.buffer.add("sub ax, bx ; minus");
 					break;
 				case 2:
-					codigo.write("add ax, bx ; plus");
-					codigo.newLine();
+					b.buffer.add("add ax, bx ; plus");
 					break;
 				case 3:
-					codigo.write("or ax, bx ; and");
-					codigo.newLine();
+					b.buffer.add("or ax, bx ; and");					
 					break;
 			}
 			
 			Exps_end = memoria.novoTemp();
-			codigo.write("cwd ; converter pra inteiro");
-			codigo.newLine();
-			codigo.write("mov DS:[" + Exps_end + "], ax");
-			codigo.newLine();
+			b.buffer.add("cwd ; converter pra inteiro");
+			
+			b.buffer.add("mov DS:[" + Exps_end + "], ax");
+			
 		}
 		
 		return Exps_tipo;
@@ -896,49 +1010,49 @@ public class Parse {
 			}
 			String F1_tipo = F();
 			
-			codigo.write("mov al, DS:[" + T_end + "]");
-			codigo.newLine();
-			codigo.write("mov bx, DS:[" + F_end + "]");
-			codigo.newLine();
+			b.buffer.add("mov al, DS:[" + T_end + "]");
+			
+			b.buffer.add("mov bx, DS:[" + F_end + "]");
+			
 			if(op == 2){
 				if(!F_tipo.equals("tipo_inteiro")){
 					//converter para inteiro
-					codigo.write("mov ah, 0 ; conversao para inteiro");
-					codigo.newLine();
+					b.buffer.add("mov ah, 0 ; conversao para inteiro");
+					
 				}
 				if(!F1_tipo.equals("tipo_inteiro")){
-					codigo.write("mov cx, DS:[ax] ; salvar o que tinha em al");
-					codigo.newLine();
-					codigo.write("mov al, DS:[" + F_end + "] ; mover F1.end para al");
-					codigo.newLine();
-					codigo.write("mov ah, 0 ; conversao para inteiro");
-					codigo.newLine();
-					codigo.write("mov bx, ax ; voltar F1.end para bx");
-					codigo.newLine();
-					codigo.write("mov ax, cx voltar valor anterior de ax");
-					codigo.newLine();
+					b.buffer.add("mov cx, DS:[ax] ; salvar o que tinha em al");
+					
+					b.buffer.add("mov al, DS:[" + F_end + "] ; mover F1.end para al");
+					
+					b.buffer.add("mov ah, 0 ; conversao para inteiro");
+					
+					b.buffer.add("mov bx, ax ; voltar F1.end para bx");
+					
+					b.buffer.add("mov ax, cx voltar valor anterior de ax");
+					
 				}
 			}
 			
 			switch(op){
 				case 1:
-					codigo.write("imul bx ; multiplicacao");
-					codigo.newLine();
+					b.buffer.add("imul bx ; multiplicacao");
+					
 					break;
 				case 2:
-					codigo.write("idiv bx ; divisao");
-					codigo.newLine();
+					b.buffer.add("idiv bx ; divisao");
+					
 					break;
 				case 3:
-					codigo.write("and ax, bx ; and");
-					codigo.newLine();
+					b.buffer.add("and ax, bx ; and");
+					
 					break;
 			}
 			
 			T_end = memoria.novoTemp();
-			codigo.newLine();
-			codigo.write("mov DS:[" + T_end + "], ax");
-			codigo.newLine();
+			
+			b.buffer.add("mov DS:[" + T_end + "], ax");
+			
 			
 			/* Acao Semantica */
 			if(!T_tipo.equals(F1_tipo) || !(T_tipo.equals("tipo_inteiro") && F1_tipo.equals("tipo_byte") || F1_tipo.equals("tipo_inteiro") && T_tipo.equals("tipo_byte"))){
@@ -974,24 +1088,24 @@ public class Parse {
 			int Fend = F_end;
 			F();
 			Fend = memoria.novoTemp();
-			codigo.write("mov al, DS:[" + F_end + "] ;");
-			codigo.newLine();
-			codigo.write("not al");
-			codigo.write("mov DS:[" + Fend + "], al");
+			b.buffer.add("mov al, DS:[" + F_end + "] ;");
+			
+			b.buffer.add("not al");
+			b.buffer.add("mov DS:[" + Fend + "], al");
 			F_end = Fend;
 		}else if(s.getToken() == tabela.CONST){
 			/* Acao Semantica */
 			F_tipo = s.getTipo();
 			if(s.getTipo().equals("tipo_string")){
 				//declarar constante na área de dados:
-				codigo.newLine();
-				codigo.write("dseg SEGMENT PUBLIC");
-				codigo.newLine();
-				codigo.write("byte " + s.getLexema().substring(0, s.getLexema().length() - 1) + "$" + s.getLexema().charAt(s.getLexema().length() - 1));
-				codigo.newLine();
-				codigo.write("dseg ENDS");
-				codigo.newLine();
-				codigo.newLine();
+				
+				b.buffer.add("dseg SEGMENT PUBLIC");
+				
+				b.buffer.add("byte " + s.getLexema().substring(0, s.getLexema().length() - 1) + "$" + s.getLexema().charAt(s.getLexema().length() - 1));
+				
+				b.buffer.add("dseg ENDS");
+				
+				
 				F_end = memoria.contador;
 				memoria.alocarString(s.getLexema().length() - 1);
 			}else{
@@ -1001,10 +1115,10 @@ public class Parse {
 				else if(s.getLexema().toLowerCase().equals("false"))
 					lexTemp = "0h";
 				F_end = memoria.novoTemp();
-				codigo.write("mov al, " + lexTemp + " ; const " + s.getLexema());
-				codigo.newLine();
-				codigo.write("mov DS:[" + F_end + "], al");
-				codigo.newLine();
+				b.buffer.add("mov al, " + lexTemp + " ; const " + s.getLexema());
+				
+				b.buffer.add("mov DS:[" + F_end + "], al");
+				
 				if(s.getTipo().equals("tipo_byte")){
 					memoria.alocarTempByte();
 				}else if(s.getTipo().equals("tipo_logico")){

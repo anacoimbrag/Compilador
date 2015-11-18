@@ -38,7 +38,7 @@ public class Principal {
 			p.S();
 			System.out.println("Finalizado - sem erros.");
 		}catch (Exception e) {
-			System.err.println("Erro");
+			System.err.println("Erro: " + e.getMessage());
 			
 		}
 	}

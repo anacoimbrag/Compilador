@@ -2,7 +2,9 @@ int n;
 string nome;
 boolean naoTerminou;
 final MAXITER=10;
-/*blablabla*/
+
+{ Bloco Principal }
+
 begin
   write,"Digite seu nome: ";
   readln,nome;
