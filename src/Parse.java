@@ -68,7 +68,7 @@ public class Parse {
 				b.buffer.add("sseg ENDS ;fim seg. pilha");
 				b.buffer.add("dseg SEGMENT PUBLIC ;início seg. dados");
 				b.buffer.add("byte 4000h DUP(?) ;temporários");
-				memoria.alocarTemp();
+				endereco = memoria.alocarTemp();
 		 		while(s.getToken() == tabela.FINAL || s.getToken() == tabela.INT || s.getToken() == tabela.BOOLEAN || s.getToken() == tabela.BYTE || s.getToken() == tabela.STRING){
 					D();
 				}
@@ -133,26 +133,30 @@ public class Parse {
 				lexTemp = "0h";
 			}
 			if(minus){
-				b.buffer.add("byte -" + lexTemp + " ; valor negativo " + temp.getLexema());
+				endereco = memoria.alocarInteiro();
+				b.buffer.add("sword -" + lexTemp + " ; valor negativo " + temp.getLexema());
+				temp.setTipo("tipo_inteiro");
 			}else{
-				b.buffer.add("byte " + lexTemp + "; valor positivo " + temp.getLexema());
+				switch(temp.getTipo()){
+					case "tipo_byte":
+						endereco = memoria.alocarByte();
+						b.buffer.add("byte " + lexTemp + " ; byte " + temp.getLexema());
+						break;
+					case "tipo_logico":
+						endereco = memoria.alocarLogico();
+						b.buffer.add("byte " + lexTemp + " ; boolean " + temp.getLexema());
+						break;
+					case "tipo_inteiro":
+						endereco = memoria.alocarInteiro();
+						b.buffer.add("sword " + lexTemp + " ; inteiro " + temp.getLexema());
+						break;
+					case "tipo_string":
+						endereco = memoria.alocarString();
+						b.buffer.add("byte " + s.getLexema().substring(0, s.getLexema().length() - 1) + "$" + s.getLexema().charAt(s.getLexema().length() - 1));					
+						break;
+				}
 			}
-			
 			temp.setEndereco(endereco);
-			switch(temp.getTipo()){
-				case "tipo_byte":
-					endereco = memoria.alocarByte();
-					break;
-				case "tipo_logico":
-					endereco = memoria.alocarLogico();
-					break;
-				case "tipo_inteiro":
-					endereco = memoria.alocarInteiro();
-					break;
-				case "tipo_string":
-					endereco = memoria.alocarString();
-					break;
-			}
 			casaToken(tabela.CONST);
 		}else if(s.getToken() == tabela.INT || s.getToken() == tabela.BOOLEAN || s.getToken() == tabela.BYTE || s.getToken() == tabela.STRING){
 			D_tipo = tipo();
@@ -196,28 +200,34 @@ public class Parse {
 				}else if(s.getLexema().toLowerCase().equals("false")){
 					lexTemp = "0h";
 				}
+				
 				if(minus){
+					endereco = memoria.alocarInteiro();
 					b.buffer.add("sword -" + lexTemp + " ; valor negativo " + temp.getLexema());
-				}
-				else{
-					b.buffer.add("sword " + lexTemp + " ; valor positivo " + temp.getLexema());
-				}
+					temp.setTipo("tipo_inteiro");
+				}else{
 				
 					switch(temp.getTipo()){
 						case "tipo_byte":
+							b.buffer.add("byte " + lexTemp + " ; byte " + temp.getLexema());
 							endereco = memoria.alocarByte();
 							break;
 						case "tipo_logico":
+							b.buffer.add("byte " + lexTemp + " ; byte " + temp.getLexema());
 							endereco = memoria.alocarLogico();
 							break;
 						case "tipo_inteiro":
+							b.buffer.add("sword " + lexTemp + " ; byte " + temp.getLexema());
 							endereco = memoria.alocarInteiro();
 							break;
 						case "tipo_string":
+							b.buffer.add("byte " + s.getLexema().substring(0, s.getLexema().length() - 1) + "$" + s.getLexema().charAt(s.getLexema().length() - 1));
 							endereco = memoria.alocarString();
 							break;
 					}
-					temp.setEndereco(endereco);
+				}
+				temp.setEndereco(endereco);
+				System.out.println(temp.getLexema() + "-" + temp.getEndereco());
 				
 				casaToken(tabela.CONST);
 			}else{
@@ -277,29 +287,30 @@ public class Parse {
 						lexTemp = "0h";
 					}
 					if(minus){
+						endereco = memoria.alocarInteiro();
 						b.buffer.add("sword -" + lexTemp + "; valor negativo " + temp.getLexema());
-						
+						temp.setTipo("tipo_inteiro");
+					}else{					
+						switch(temp.getTipo()){
+							case "tipo_byte":
+								b.buffer.add("byte " + lexTemp + "; valor positivo " + temp.getLexema());
+								endereco = memoria.alocarByte();
+								break;
+							case "tipo_logico":
+								b.buffer.add("byte " + lexTemp + "; valor positivo " + temp.getLexema());
+								endereco = memoria.alocarLogico();
+								break;
+							case "tipo_inteiro":
+								b.buffer.add("sword " + lexTemp + "; valor positivo " + temp.getLexema());
+								endereco = memoria.alocarInteiro();
+								break;
+							case "tipo_string":
+								b.buffer.add("byte " + s.getLexema().substring(0, s.getLexema().length() - 1) + "$" + s.getLexema().charAt(s.getLexema().length() - 1));
+								endereco = memoria.alocarString();
+								break;
+						}
 					}
-					else{
-						b.buffer.add("sword " + lexTemp + "; valor positivo " + temp.getLexema());
-						
-					}
-					
 					temp.setEndereco(endereco);
-					switch(temp.getTipo()){
-						case "tipo_byte":
-							endereco = memoria.alocarByte();
-							break;
-						case "tipo_logico":
-							endereco = memoria.alocarLogico();
-							break;
-						case "tipo_inteiro":
-							endereco = memoria.alocarInteiro();
-							break;
-						case "tipo_string":
-							endereco = memoria.alocarString();
-							break;
-					}
 					
 					casaToken(tabela.CONST);
 				}else{
@@ -512,39 +523,68 @@ public class Parse {
 			b.buffer.add("int 21h");
 			
 			
-			
 			b.buffer.add("mov di, " + bufferEnd+2 + ";posição do string");
+			if(!tmp.getTipo().equals("tipo_string")){
+				b.buffer.add("mov ax, 0");
+				b.buffer.add("mov cx, 10");
+				b.buffer.add("mov dx, 1");
+				b.buffer.add("mov bh, 0");
+				b.buffer.add("mov bl, ds:[di]");
+				b.buffer.add("cmp bx, 2Dh");
+				String rot = rotulo.novoRotulo();
+				b.buffer.add("jne " + rot);
+				b.buffer.add("mov dx, -1");
+				b.buffer.add("add di, 1");
+				b.buffer.add("mov bl, ds:[di]");
+				b.buffer.add(rot + ":");
+				b.buffer.add("push dx");
+				b.buffer.add("mov dx, 0");
+				String rot1 = rotulo.novoRotulo();
+				b.buffer.add(rot1 + ":");
+				b.buffer.add("cmp bx, 0Dh");
+				String rot2 = rotulo.novoRotulo();
+				b.buffer.add("je " + rot2);
+				b.buffer.add("imul cx");
+				b.buffer.add("add bx, -48");
+				b.buffer.add("add ax, bx");
+				b.buffer.add("add di, 1");
+				b.buffer.add("mov bh, 0");
+				b.buffer.add("mov bl, ds:[di]");
+				b.buffer.add("jmp " + rot1);
+				b.buffer.add(rot2 + ":");
+				b.buffer.add("pop cx");
+				b.buffer.add("imul cx");
+				
+				b.buffer.add("mov DS:[" + tmp.getEnd() + "], ax");
+			}else{			
+				b.buffer.add("mov si, " + tmp.getEnd());
+				
+				
+				String rotString = rotulo.novoRotulo();
+				b.buffer.add(rotString + ":");
+				
+				b.buffer.add("mov al, ds:[di]");
+				
+				b.buffer.add("cmp al, 0dh ;verifica fim string");
+				
+				String rot2 = rotulo.novoRotulo();
+	 			b.buffer.add("je " + rot2 + " ;salta se fim string");
+	 			
+	 			b.buffer.add("mov ds:[si], al ;próximo caractere");
+				
+				b.buffer.add("add di, 1 ;incrementa base");
+				
+				b.buffer.add("add si, 1");
+				
+				b.buffer.add("jmp " + rotString + " ;loop");
+				
+				b.buffer.add(rot2 + ":");
+				
+				b.buffer.add("mov al, 024h ;fim de string");
+				
+				b.buffer.add("mov ds:[si], al ;grava '$'");
 			
-			
-			String rot2 = "";
-			b.buffer.add("mov si, " + tmp.getEnd());
-			
-			
-			String rotString = rotulo.novoRotulo();
-			b.buffer.add(rotString + ":");
-			
-			b.buffer.add("mov al, ds:[di]");
-			
-			b.buffer.add("cmp al, 0dh ;verifica fim string");
-			
-			rot2 = rotulo.novoRotulo();
- 			b.buffer.add("je " + rot2 + " ;salta se fim string");
- 			
- 			b.buffer.add("mov ds:[si], al ;próximo caractere");
-			
-			b.buffer.add("add di, 1 ;incrementa base");
-			
-			b.buffer.add("add si, 1");
-			
-			b.buffer.add("jmp " + rotString + " ;loop");
-			
-			b.buffer.add(rot2 + ":");
-			
-			b.buffer.add("mov al, 024h ;fim de string");
-			
-			b.buffer.add("mov ds:[si], al ;grava '$'");
-			
-			
+			}
 
 
 		}else if(s.getToken() == tabela.WRITE || s.getToken() == tabela.WRITELN){
@@ -575,6 +615,7 @@ public class Parse {
 				
 				
 			}else{
+				b.buffer.add("mov ax, DS:[" + Exp_end + "]");
 				b.buffer.add("mov di, " + stringEnd + " ;end. string temp.");
 				
 				b.buffer.add("mov cx, 0 ;contador");
@@ -645,13 +686,9 @@ public class Parse {
 			}
 			while(s.getToken() == tabela.COMMA){
 				casaToken(tabela.COMMA);
-				Exp_tipo = exp();
 				
-//				b.buffer.add("mov dx, " + Exp_end);
-//				
-//				b.buffer.add("mov ah, 09h");
-//				
-//				b.buffer.add("int 21h");
+				Exp_tipo = exp();
+				stringEnd = memoria.novoTemp();
 				
 				if(Exp_tipo.equals("tipo_string")){
 					b.buffer.add("mov dx, " + Exp_end);
@@ -698,9 +735,7 @@ public class Parse {
 					b.buffer.add("cmp ax, 0 ;verifica se quoc.  0");
 					
 					b.buffer.add("jne " + rot1 + " ;se nao  0, continua");
-					
-					b.buffer.add(";agora, desemp. os valores e escreve o string");
-					
+									
 					String rot2 = rotulo.novoRotulo();
 					b.buffer.add(rot2 + ":");
 					
@@ -717,6 +752,15 @@ public class Parse {
 					b.buffer.add("cmp cx, 0 ;verifica pilha vazia");
 					
 					b.buffer.add("jne " + rot2 + " ;se nao pilha vazia, loop");
+					
+					b.buffer.add("mov dl, 024h ;fim de string");
+					b.buffer.add("mov ds:[di], dl ;grava '$'");
+					
+					b.buffer.add("mov dx, " + stringEnd);
+					
+					b.buffer.add("mov ah, 09h");
+					
+					b.buffer.add("int 21h");
 					
 				}
 				

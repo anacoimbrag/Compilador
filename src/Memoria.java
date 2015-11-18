@@ -12,8 +12,10 @@ public class Memoria {
 		contTemp = 0;
 	}
 	
-	public void alocarTemp(){
+	public int alocarTemp(){
+		int tmp = contador;
 		contador += 16384;
+		return tmp;
 	}
 	
 	public int alocarByte(){

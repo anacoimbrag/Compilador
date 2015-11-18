@@ -1,4 +1,4 @@
-int x = 2000;
+int x = -2000;
 byte y = 10;
 begin
 writeln, x;
