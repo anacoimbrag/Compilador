@@ -197,10 +197,10 @@ public class Parse {
 					lexTemp = "0h";
 				}
 				if(minus){
-					b.buffer.add("byte -" + lexTemp + " ; valor negativo " + temp.getLexema());
+					b.buffer.add("sword -" + lexTemp + " ; valor negativo " + temp.getLexema());
 				}
 				else{
-					b.buffer.add("byte " + lexTemp + " ; valor positivo " + temp.getLexema());
+					b.buffer.add("sword " + lexTemp + " ; valor positivo " + temp.getLexema());
 				}
 				
 					switch(temp.getTipo()){
@@ -277,11 +277,11 @@ public class Parse {
 						lexTemp = "0h";
 					}
 					if(minus){
-						b.buffer.add("byte -" + lexTemp + "; valor negativo " + temp.getLexema());
+						b.buffer.add("sword -" + lexTemp + "; valor negativo " + temp.getLexema());
 						
 					}
 					else{
-						b.buffer.add("byte " + lexTemp + "; valor positivo " + temp.getLexema());
+						b.buffer.add("sword " + lexTemp + "; valor positivo " + temp.getLexema());
 						
 					}
 					
@@ -610,9 +610,7 @@ public class Parse {
 				b.buffer.add("cmp ax, 0 ;verifica se quoc.  0");
 				
 				b.buffer.add("jne " + rot1 + " ;se nao  0, continua");
-				
-				b.buffer.add(";agora, desemp. os valores e escreve o string");
-				
+								
 				String rot2 = rotulo.novoRotulo();
 				b.buffer.add(rot2 + ":");
 				
@@ -630,6 +628,14 @@ public class Parse {
 				
 				b.buffer.add("jne " + rot2 + " ;se nao pilha vazia, loop");
 				
+				b.buffer.add("mov dl, 024h ;fim de string");
+				b.buffer.add("mov ds:[di], dl ;grava '$'");
+				
+				b.buffer.add("mov dx, " + stringEnd);
+				
+				b.buffer.add("mov ah, 09h");
+				
+				b.buffer.add("int 21h");
 			}
 			
 			if(!(Exp_tipo.equals("tipo_inteiro") || Exp_tipo.equals("tipo_string") || Exp_tipo.equals("tipo_byte"))){
@@ -656,6 +662,7 @@ public class Parse {
 					
 					
 				}else{
+					b.buffer.add("mov ax, DS:[" + Exp_end + "]");
 					b.buffer.add("mov di, " + stringEnd + " ;end. string temp.");
 					
 					b.buffer.add("mov cx, 0 ;contador");
@@ -1115,7 +1122,7 @@ public class Parse {
 				else if(s.getLexema().toLowerCase().equals("false"))
 					lexTemp = "0h";
 				F_end = memoria.novoTemp();
-				b.buffer.add("mov al, " + lexTemp + " ; const " + s.getLexema());
+				b.buffer.add("mov ax, " + lexTemp + " ; const " + s.getLexema());
 				
 				b.buffer.add("mov DS:[" + F_end + "], al");
 				

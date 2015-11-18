@@ -1,9 +1,6 @@
-int x;
-byte y;
+int x = 2000;
+byte y = 10;
 begin
-
-x = 256;
-y = 76;
-write,x;
-
+writeln, x;
+writeln, y;
 end
