@@ -181,7 +181,7 @@ public class Parse {
 				if(s.getToken() == tabela.MINUS){
 					minus = true;
 					casaToken(tabela.MINUS);
-					if(s.getTipo().equals("tipo_string")){
+					if(!s.getTipo().equals("tipo_inteiro")){
 						System.err.println(lexico.linha + ":tipos incompativeis.");
 						System.exit(0);
 					}
@@ -1071,23 +1071,23 @@ public class Parse {
 			b.buffer.add("mov bx, DS:[" + F_end + "]");
 			
 			if(op == 2){
-				if(!F_tipo.equals("tipo_inteiro")){
+//				if(!F_tipo.equals("tipo_inteiro")){
 					//converter para inteiro
-					b.buffer.add("mov ah, 0 ; conversao para inteiro");
+					b.buffer.add("cwd");
 					
-				}
-				if(!F1_tipo.equals("tipo_inteiro")){
-					b.buffer.add("mov cx, DS:[ax] ; salvar o que tinha em al");
+//				}
+//				if(!F1_tipo.equals("tipo_inteiro")){
+					b.buffer.add("mov cx, ax ; salvar o que tinha em al");
 					
-					b.buffer.add("mov al, DS:[" + F_end + "] ; mover F1.end para al");
+					b.buffer.add("mov ax, DS:[" + F_end + "] ; mover F1.end para al");
 					
-					b.buffer.add("mov ah, 0 ; conversao para inteiro");
+					b.buffer.add("cwd");
 					
 					b.buffer.add("mov bx, ax ; voltar F1.end para bx");
 					
-					b.buffer.add("mov ax, cx voltar valor anterior de ax");
+					b.buffer.add("mov ax, cx ;voltar valor anterior de ax");
 					
-				}
+//				}
 			}
 			
 			switch(op){
@@ -1097,7 +1097,7 @@ public class Parse {
 					break;
 				case 2:
 					b.buffer.add("idiv bx ; divisao");
-					
+					b.buffer.add("sub ax, 256; divisao");
 					break;
 				case 3:
 					b.buffer.add("and ax, bx ; and");
